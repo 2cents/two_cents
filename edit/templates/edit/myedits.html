@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_edits' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 50},
+                       dataType: "text",
+                       success: function(response) {
+                           $(response).find("object").each(function() {
+                               title = $(this).find('[name="document_title"]').text();
+                               hash = $(this).find('[name="link_hash"]').text();
+                               $('.myEditsDiv').append(
+                                    $('<div class="middleSelection">').append(
+                                        $('<a>').attr('href','/edit/' + hash).append(title)
+                                    )
+                               );    
+                           });
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+
+
+function addPublicationTab(publication) {
+                            var publication_name = publication["publication_name"];
+                            var id = publication["id"];
+                            $(".topTabs").append(
+                                $('<li>').append(
+                                    $('<a href="#0">').attr("data-content", publication_name).append(publication_name)
+                                )
+                            );
+
+
+                            $(".cd-tabs-content").append(
+                                $('<li>').attr("data-content", publication_name).append(
+                                    $('<div class="extendingColumn tabbedContent">').append(
+                                        $('<div class="articlePaddingDiv">')
+                                    )
+                                )
+                            );
+                            addTabListeners();
+}
+
+
+
+        {% for publication in publication_list %}
+            pub = {};
+            pub["id"] = "{{publication.id}}";
+            pub["publication_name"] = "{{publication.publication_name}}";
+            addPublicationTab(pub);
+        {% endfor %}
+
+{% endblock %}
+{% block middleContent %}
+
+        <div class="paddingDiv">
+          <div class="tabsContainer">
+                <ul class="topTabs">
+                    <li><a data-content="read" class="selected" href="#0">My Edit Requests</a></li>
+                </ul> <!-- cd-tabs-navigation -->
+              <ul class="cd-tabs-content">
+                <li data-content="read" class="selected">
+                  <div class="column tabbedContent">
+                      <div class="articlePaddingDiv myEditsDiv">
+                      </div>
+                    </div>
+                </li>
+              </ul>
+        </div>
+        </div>
+
+{% endblock %}

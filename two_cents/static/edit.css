@@ -1,0 +1,71 @@
+.control { font: 12px Arial; padding: 5px; display: inline-block; margin-bottom: 5px; }
+.control button { margin-right: 5px; }
+#content { color: #333333; font: 14px; }
+#content, #tinymce-wrapper { height: 300px; }
+#text-wrapper { 
+	width: 620px;
+	background: #CFCFCF;
+	min-height: 300px;
+	max-height: 300px;
+	overflow: auto; 
+	padding: 40px;
+	border: 1px solid #BFBFBF;
+	font-size: 15px;
+	line-height: 24px;
+}
+
+a.mceButton16 img.mceIcon { width: 16px; height: 16px; padding: 2px;}
+
+.CT-hide .del, .CT-hide .del {
+	display: none;
+}
+
+.CT-hide .ins, .CT-hide .ins {
+	color: #333333;
+	background: none !important;
+	border: none !important; 
+	text-decoration: none;
+}
+
+.del {
+	text-decoration: line-through;
+//    color: #F06000;
+    color: #f05451;
+}
+.ins {
+	text-decoration: underline;
+//    color: #004090;
+    color:  #248fc1;
+}
+.cts-1 {
+//    color: green;
+}
+.cts-2 {
+    color: #C02000;
+}
+
+.cts-3 {
+    color: #004090;
+}
+
+.cts-4 {
+    color: #F06000;
+}
+
+.cts-5 {
+    color: purple;
+}
+
+.cts-6 {
+    color: #801080;
+}
+
+.cts-7 {
+		color: #1080B0;
+}
+
+.ice-avoid {
+	color: red;
+}
+
+

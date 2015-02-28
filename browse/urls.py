@@ -1,0 +1,38 @@
+from django.conf.urls import patterns, url
+
+from browse import views
+
+
+urlpatterns = patterns('',
+    url(r'^register/$', views.register, name='register'),
+    url(r'^author/(?P<name>.+)$', views.author, name='author'),
+    url(r'^publication/(?P<name>.+)$', views.publication, name='publication'),
+    url(r'^read/(?P<hash_id>.+)$', views.read, name='read'),
+    url(r'^login/$', views.login_form, name='login'),
+    url(r'^logout/$', views.logout_view, name='logout'),
+    url(r'^get_latest_docs/$', views.get_latest_docs, name='get_latest_docs'),
+    url(r'^get_latest_revs/$', views.get_latest_revs, name='get_latest_revs'),
+    url(r'^get_latest_edits/$', views.get_latest_edits, name='get_latest_edits'),
+    url(r'^get_latest_bookmarks/$', views.get_latest_bookmarks, name='get_latest_bookmarks'),
+    url(r'^add_bookmark/$', views.add_bookmark, name='add_bookmark'),
+    url(r'^get_bookmark_offset/$', views.get_bookmark_offset, name='get_bookmark_offset'),
+    url(r'^article_previews/(?P<page>.+)$', views.article_previews, name='article_previews'),
+    url(r'^page/(?P<page>.+)$', views.browse_page, name='browse_page'),
+    url(r'^add_vote$', views.add_vote, name='add_vote'),
+    url(r'^save_author_desc$', views.save_author_desc, name='save_author_desc'),
+    url(r'^add_comment_vote$', views.add_comment_vote, name='add_comment_vote'),
+    url(r'^add_comment$', views.add_comment, name='add_comment'),
+    url(r'^get_comments$', views.get_comments, name='get_comments'),
+    url(r'^get_subscriptions$', views.get_subscriptions, name='get_subscriptions'),
+    url(r'^follow_user$', views.follow_user, name='follow_user'),
+    url(r'^follow_pub$', views.follow_pub, name='follow_pub'),
+    url(r'^send_message$', views.send_message, name='send_message'),
+    url(r'^messages/conversations/(?P<page>.+)$', views.conversations, name='conversations'),
+    url(r'^messages/sent/(?P<page>.+)$', views.sent_messages, name='sent_messages'),
+    url(r'^messages/(?P<page>.+)$', views.messages, name='messages'),
+    url(r'^new_link$', views.new_link, name='new_link'),
+    url(r'^follow_tags$', views.follow_tags, name='follow_tags'),
+    url(r'^add_tags$', views.add_tags, name='add_tags'),
+    url(r'^toggle_tag$', views.toggle_tag, name='toggle_tag'),
+    url(r'^$', views.index, name='index'),
+)

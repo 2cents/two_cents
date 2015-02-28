@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+            $("article").contents().unwrap();
+
+                $(".tagInput, .editorUsernames").keyup(function(e) {
+                    if (e.keyCode == 188 || e.keyCode == 13) {
+                        var inputString = $(this).val();
+                        var tags = inputString.split(",");
+                        var index;
+                        if (tags.length > 0) {
+                            for	(index = 0; index < tags.length; index++) {
+                                var newTag = tags[index].trim();
+                                if (newTag.length > 0) { 
+$(this).after($('<div class="tag">').append(newTag).append($('<i id="closeTag" class="fa fa-times" onclick=$(this).closest(".tag").remove()>')));
+                                    $(this).val("");
+                                }
+                            }
+                        }
+                    }
+                });
+
+
+                $(document).on("keydown", function(e) {
+                    if (e.keyCode == 32 && e.ctrlKey) {
+                        $("#notecardFormBorder").css("display", "block");
+                        $(".tagInput").focus();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    if (e.keyCode == 13 && e.ctrlKey) {
+                        $("#sourceFormBorder").css("display", "block");
+                        $(".sourceInput").focus();
+//                        getTitle();
+                    }
+                });
+
+                $(".newSourceButton").on("click", function(){
+                    $("#sourceFormBorder").css("display", "block");
+                    $(".sourceInput").focus();
+                });
+
+
+              $(".requestEdit").on("click", function(){
+                        $("#requestEditFormBorder").css("display", "block");
+                });
+
+                
+
+                function saveDoc() {
+//                    alert($("#textbody").html());
+                    var editCount = $(".cts-1").size();
+                    var editorsDict = {};
+                    $(".cts-1").each(function() {
+                        var username = $(this).data("username");
+                        editorsDict[username] = 1;
+                    });
+                    var editorsString = "";
+                    for (var key in editorsDict) {
+                            editorsString = editorsString.concat(key).concat(":");
+                    }
+//                    alert(editorsString);
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:save_document' %}",
+                           data: {'doc_id': $("#docId").val(), 'doc_title': $(".title").val(), 'doc_text': $("#textbody").html(), 'edit_count' : editCount, 'editors_dict' : editorsString, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+//                                alert("Prev doc id: " + $("#docId").val());
+//                                $("#docId").val(response);
+//                                alert($("#docId").val());
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });
+
+                }
+
+function addCitations(citationList) {
+
+    $(citationList).find("object").each(function() {
+        author = $(this).find('[name="authors"]').text().split(",");
+        authorArray = author[0].split(" ");
+        formattedAuthor = authorArray[authorArray.length - 1] + ", " + authorArray.slice(0, -1).join(" ");
+        if (author.length > 1) {
+            formattedAuthors = formattedAuthor + author.slice(1, -1).join(", ") + ", and " + author[author.length - 1];
+        } else {
+            formattedAuthors = formattedAuthor;
+        }
+        if (formattedAuthors[formattedAuthors.length -1] != ".") {
+            formattedAuthors = formattedAuthors + ". "
+        } else {
+            formattedAuthors = formattedAuthors + " "
+        }
+        var citation = $('<div class="citation">');
+        citation.append(formattedAuthors);
+        citation.append($('<i>').append($(this).find('[name="title"]').text() + ". "));
+        citation.append($(this).find('[name="publisher"]').text() + ", ");
+        date = new Date($(this).find('[name="pub_date"]').text());
+        citation.append(date.getFullYear() + ". Print.");
+        $("#bibContent").append(citation);
+    });
+
+}
+
+                  $.ajax({
+                           type: "GET",
+                           url: "{% url 'write:get_sources' %}",
+                           data: {'doc_id': {{selected_doc.id}}, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+                                addCitations(response);
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });  
+
+                $(".sourceSave").on("click", function() {
+
+                    year = $('[name="year"]').val();
+                    pub_date = new Date(year, 0, 1, 0, 0, 0, 0).toLocaleDateString(); 
+
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:new_source' %}",
+                           data: {'doc_id': $("#docId").val(), 'title': $('[name="title"]').val(), 'authors': $('[name="authors"]').val(), 'pub_date': pub_date, 'publisher': $('[name="publisher"]').val(), 'source_type': $(".sourceType").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+                                    addCitations(response);
+//                                alert("Prev doc id: " + $("#docId").val());
+//                                $("#docId").val(response);
+//                                alert($("#docId").val());
+                                    $(".popup").hide();
+                            },
+                            error: function(rs, e) {
+alert("Clicked source submit");
+                                   alert(rs.responseText);
+                            }
+                      });
+
+
+                });
+
+
+                setInterval(function() {
+                    saveDoc();
+                    $('#autoSave').animate({'margin-top':-45},200);
+                    setTimeout( function(){
+                        $('#autoSave').animate({'margin-top':0},200);
+                    }, 5*1000);
+                }, 60 * 10 * 1000);
+
+              $(".saveDocument").on("click", function(){ 
+                    saveDoc();
+                });
+
+
+              $(".sourceSubmit").on("click", function(){ 
+                    getTitle();
+                });
+
+              $(".requestEditSubmit").on("click", function(){
+                    var editorsString = "";
+                    $(this).closest(".tagForm").find(".tag").each(function() {
+                        var editorName = $(this).text();
+                        editorsString = editorsString.concat(editorName).concat(":");
+                    });
+                        editorsString =  editorsString.concat($(".editorUsernames").val()).concat(":");
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:request_edit' %}",
+                           data: {'doc_title': $(".title").val(), 'doc_text': $("#textbody").html(), 'doc_id': $("#docId").val(), 'editor_usernames': editorsString, 'csrfmiddlewaretoken': '{{csrf_token}}', 'comment': $("#editRequestComment").val()},
+                           dataType: "text",
+                           success: function(response) {
+//                                $("#docId").val(response);
+//                                alert($("#docId").val());
+                                $(".popup").hide();
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      }); 
+                    alert(editorsString);
+                });
+
+document.execCommand('defaultParagraphSeparator', false, 'p');
+
+$("#textbody").on("paste", function(e) {
+    setTimeout(function() {
+        $("#textbody").contents().each(function() {
+          var keepStyle, $el;
+          $el = $(this);
+          keepStyle = {
+            "font-weight": $el.css('font-weight'),
+            "font-style" : $el.css('font-style')
+          };
+
+          $el.removeAttr('style').css(keepStyle);
+        });
+    }, 100);
+});
+
+
+
+//$(".title").val("{{selected_doc.document_title}}");
+
+$(".cts-1").wrap('<span class="trackedChange" style="display:inline" contenteditable="false"></span>');
+
+//$(".cts-1").wrap('<div class="dropClass" style="display:inline"><li class="ctsWrapper" style="display:inline"></li></div>');
+
+//$(".cts-1").after('<ul><div class="accept change">Accept</div><div class="reject change">Reject</div></ul>');
+
+//$(".dropClass").dropit({action: "mouseenter", triggerEl : ".cts-1"});
+
+    $(".trackedChange").on("mouseenter", function() {
+        $(document).find(".trackedChange").removeClass("currentTarget");
+        $(this).addClass("currentTarget");
+});
+
+function removeIns(){
+     $(".currentTarget").remove() 
+}
+
+    $(".ins").tooltip({
+        show: null, // show immediately 
+        content: '<button class="accept change" onclick=$(".currentTarget").after($(".currentTarget").text()).remove()><i class="fa fa-check"></i></button><button class="reject change" onclick=$(".currentTarget").remove()><i class="fa fa-times"></i></button>', //from params
+//        track: true,
+        position: { my: "center top+10", at: "center" },
+        hide: { effect: "" }, //fadeOut
+        close: function(event, ui){
+            ui.tooltip.hover(
+                function () {
+                    $(this).stop(true).fadeTo(400, 1); 
+                },
+                function () {
+                    $(this).fadeOut("400", function(){
+                        $(this).remove(); 
+                    })
+                }
+            );
+        }
+    });
+
+    $(".del").tooltip({
+        show: null, // show immediately 
+        content: '<button class="accept change" onclick=$(".currentTarget").remove()><i class="fa fa-check"></i></button><button class="reject change" onclick=$(".currentTarget").find(".del").contents().unwrap()><i class="fa fa-times"></i></button>', //from params
+//        track: true,
+        position: { my: "center top+10", at: "center" },
+        hide: { effect: "" }, //fadeOut
+        close: function(event, ui){
+            ui.tooltip.hover(
+                function () {
+                    $(this).stop(true).fadeTo(400, 1); 
+                },
+                function () {
+                    $(this).fadeOut("400", function(){
+                        $(this).remove(); 
+                    })
+                }
+            );
+        }
+    });
+
+    $(".tagInput, .editorUsernames").keypress(function(event) { return event.keyCode != 13; });
+
+        function getTitle() {
+                 var resp;
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:get_web_content' %}",
+                           data: {'url': $(".sourceInput").val(), 'source_type': $(".sourceType").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "json",
+                           success: function(response) {
+//                                $("#textbody").text(response);
+                                $(".popup").hide();
+//                                resp = response;
+                                for (var key in response) {
+                                    sourceClass = ".source_" + key;
+                                    $(sourceClass).val(response[key]);
+//                                    alert(key);
+                                }
+                                
+                                $("#submitSourceFormBorder").show();
+                            },
+                            error: function(rs, e) {
+//                                $("#textbody").text("HELLO2");
+                                   alert(rs.responseText);
+                            }
+                      }); 
+
+        }
+
+        $(".commentMarker").each(function(){
+                    var titleText = $(this).attr("title");
+                    var hoverComment = '<div class="hoverComment">' + titleText + '</div>';
+                    var rightColumnComment = '<a href=#' + $(this).attr("id") + '>' + titleText + '</a>';
+                    prependToRightColumn(rightColumnComment);
+                    $(this).tooltip({
+                        show: null, // show immediately 
+                        content: hoverComment, //from params
+                //        track: true,
+                        hide: { effect: "" }, //fadeOut
+                        close: function(event, ui){
+                            ui.tooltip.hover(
+                                function () {
+                                    $(this).stop(true).fadeTo(400, 1); 
+                                },
+                                function () {
+                                    $(this).fadeOut("400", function(){
+                                        $(this).remove(); 
+                                    })
+                                }
+                            );
+                        }
+                    });
+        });
+
+
+var spinTarget = document.getElementById("sourceForm");
+var spinner = new Spinner(spinOpts).spin(spinTarget);
+
+$(document)
+  .ajaxStart(function () {
+    spinner.spin(spinTarget);
+  })
+  .ajaxStop(function () {
+    spinner.stop(spinTarget);
+  });
+
+$(".sourceType").change(function() {
+    var type = $(this).val();
+    if (type === "website") {
+        $(".sourceInputName").text("Url");
+    }
+    if (type === "book") {
+        $(".sourceInputName").text("Book Title or ISBN (Preferred)");
+    }
+});
+
+{% endblock %}
+{% block headerContent %}
+
+<form action="{% url 'publish:publish_document' %}" method="post" id="publishForm">
+    {% csrf_token %}
+                <input class="title" type="text" name="doc_title" value="{{selected_doc.document_title}}"/>
+                <input id="docId" type="hidden" value="{{selected_doc.original_id.id}}"/>
+</form>
+{% endblock %}
+
+{% block middleContent %}
+        <div class="paddingDiv">
+            
+            
+  <div class="tabsContainer">
+      <nav>
+		<ul class="topTabs">
+			<li><a data-content="write" class="selected" href="#0">Write</a></li>
+			<li><a data-content="bibliography" href="#0">Bibliography</a></li>
+		</ul> <!-- cd-tabs-navigation -->
+      </nav>
+      <ul class="cd-tabs-content">
+		<li data-content="write" class="selected">
+            <div class="extendingColumn tabbedContent"><div class="articlePaddingDiv"><div id="textbody" class="editField" contenteditable="true">{{selected_doc.document_text | safe}}</div></div></div>
+            
+        </li>
+		<li data-content="bibliography">
+                <div class="extendingColumn tabbedContent">
+            
+                    <div class="articlePaddingDiv" id="bibContent" ></a></div>
+                </div>
+            
+        </li>
+      </ul>
+</div>
+            
+            
+  <!--input type="submit" form="publishForm" value="Submit"-->
+            
+            <script type="text/javascript">
+            
+            var u_id = "{{user.id}}";
+            var u_name = "{{user.username}}";
+     // setup and start event handling for track changes
+     tracker.startTracking();
+            
+}); 
+            </script>
+            
+            <div id="sourceFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm tagForm" id="sourceForm" action="javascript:void(0);">{% csrf_token %}<h3>New Source</h3><h4>Source Type</h4>
+                          <select class="sourceType">
+                              <option value="website">Website</option>
+                              <option value="book">Book</option>
+                          </select><h4 class="sourceInputName">Url</h4><input type="text" class="sourceInput" name="source_url"/><br>
+                    <button class="sourceSubmit">Submit</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+            
+            <div id="submitSourceFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm tagForm" id="submitSourceForm" action="javascript:void(0);">{% csrf_token %}<h3>New Source</h3><h4>Source Type</h4>
+                          <select name="source_type" class="sourceType">
+                              <option value="website">Website</option>
+                              <option value="book">Book</option>
+                          </select><h4>Title</h4><input type="text" class="source_title" name="title"/><br>
+                          <h4>Author</h4><input type="text" class="source_author" name="authors"/><br>
+                          <h4>Publisher</h4><input type="text" class="source_publisher" name="publisher"/><br>
+                          <h4>Publication Date</h4><input type="text" class="source_year" name="year"/><br>
+                          <input type="hidden" name="doc_id" value="{{selected_doc.id}}">
+                          <button type="button" class="sourceSave">Submit</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+            
+            <div id="notecardFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm tagForm" id="notecardForm">{% csrf_token %}<h3>New Note</h3><h4>Tags</h4><input type="text" class="tagInput" name="tag_string"/><br><h4 style="clear:left">Note</h4><textarea form="notecardForm" name="note_content"></textarea>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+            
+            <div id="requestEditFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="requestEditForm">{% csrf_token %}<h3>Request Edit</h3>
+                    <h4>Editors</h4>
+                    <input class="editorUsernames" type="text"/>
+                    <h4 style="clear:left">or</h4><h4 style="clear:left">Publication</h4>
+                            <select name="publication_name" class="publication_select">
+                              <option value=""></option>
+                            </select>
+                    <br><h4 style="clear:left">Comment</h4><textarea name="comment" id="editRequestComment"></textarea>
+                    <button type="button" class="requestEditSubmit">Submit Request</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+</div>
+
+<div id="autoSave">Auto Saved</div>
+
+{% endblock %}
+{% block leftContent %}
+
+                    <div class="textPaddingDiv">
+                        <div class="leftActions">
+                            <div class="newSourceButton leftAction"><a href="#" class="actionText">New Source</a></div>
+                            <div class="saveDocument leftAction"><a href="#" class="actionText">Save</a></div>
+                            <div class="requestEdit leftAction"><a href="#" class="actionText">Request Edit</a></div>
+                        </div>
+                    </div>
+{% endblock %}

@@ -1,0 +1,467 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'edit.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/font-awesome.css' %}" />
+  <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+	<script src="http://code.jquery.com/jquery-migrate-1.0.0.js"></script>
+<script type="text/javascript" src="{% static 'packed.js' %}"></script>
+<script type="text/javascript" src="{% static 'dropit.js' %}"></script>
+<script type="text/javascript" src="{% static 'spin.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'ice.js' %}"></script>
+<script type="text/javascript" src="{% static 'jquery-ui.js' %}"></script>
+<link href='http://fonts.googleapis.com/css?family=Merriweather' rel='stylesheet' type='text/css'>
+      <script>
+          
+          
+          
+          var spinOpts = {
+  lines: 13, // The number of lines to draw
+  length: 20, // The length of each line
+  width: 10, // The line thickness
+  radius: 30, // The radius of the inner circle
+  corners: 1, // Corner roundness (0..1)
+  rotate: 0, // The rotation offset
+  direction: 1, // 1: clockwise, -1: counterclockwise
+  color: '#000', // #rgb or #rrggbb or array of colors
+  speed: 1, // Rounds per second
+  trail: 60, // Afterglow percentage
+  shadow: false, // Whether to render a shadow
+  hwaccel: false, // Whether to use hardware acceleration
+  className: 'spinner', // The CSS class to assign to the spinner
+  zIndex: 2e9, // The z-index (defaults to 2000000000)
+  top: '40%', // Top position relative to parent
+  left: '50%' // Left position relative to parent
+};
+          
+          $(document).ready(function() {
+/*                $('img').on("mouseleave", function() {
+                    $(".column").removeClass("zen");
+//                        $("#leftColumn").animate({"margin-left":"-100%"});
+                        $("#leftColumn").animate({"opacity":"1"});
+                        $("#rightColumn").animate({"opacity":"1"});
+//                        $("#rightColumn").animate({"margin-left":"-290px"});
+                });*/
+//                $('img').on("click", function() {
+//                    $(".column").addClass("zen");
+//                        switchZen();
+//                        $("#leftColumn").animate({"opacity":"0"});
+//                        $("#leftColumn").animate({"margin-left":"-=200px"});
+  //                      $("#rightColumn").animate({"opacity":"0"});
+    //                    $("#header").animate({"margin-top":"-200px"});
+       //                 $("#rightColumn").animate({"margin-right":"-290px"});
+  //              });
+              
+              
+
+function addTabListeners() {
+//	var tabItems = $('.topTabs a'),
+		tabContentWrapper = $('.cd-tabs-content');
+
+	 $('.topTabs a').on('click', function(event){
+		event.preventDefault();
+		var selectedItem = $(this);
+		if( !selectedItem.hasClass('selected') ) {
+			var selectedTab = selectedItem.data('content'),
+				selectedContent = tabContentWrapper.find('li[data-content="'+selectedTab+'"]'),
+				slectedContentHeight = selectedContent.innerHeight();
+			
+			 $('.topTabs a').removeClass('selected');
+			selectedItem.addClass('selected');
+			selectedContent.addClass('selected').siblings('li').removeClass('selected');
+			//animate tabContentWrapper height when content changes 
+		}
+	});
+}
+              
+              addTabListeners();
+
+                function htmlDecode(input){
+                  var e = document.createElement('div');
+                  e.innerHTML = input;
+                  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+                }
+              
+                function prependToRightColumn(content) {
+                    $("#rightColumn").prepend(
+                        $('<div class="paddingDiv">').append(
+                            $('<div class="rightColumnDiv">').append(
+                                $('<div class="textPaddingDiv">').append(content)
+                            )
+                        )
+                    );
+                }
+              
+               {% block onReady %}{% endblock %}
+               
+               {% if user.is_authenticated %}
+               
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_bookmarks' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
+                       dataType: "text",
+                       success: function(response) {
+                            $("#read .leftDocument").remove();
+                           if ($(response).find("object").length == 0) {
+                               $('#read ul').append(
+                                $('<li class="leftDocument">').append(
+                                    $('<div>').append(
+                                        $('<a>').attr('href','/browse/').append("No Bookmarks")
+                                    )
+                                )
+                               );                                
+                           } else {
+                               $(response).find("object").each(function() {
+                                   title = $(this).find('[name="document_title"]').text();
+                                   hash = $(this).find('[name="link_hash"]').text();
+                                   $('#read ul').append(
+                                    $('<li class="leftDocument">').append(
+                                        $('<div>').append(
+                                            $('<a>').attr('href','/browse/read/' + hash).append(title)
+                                        )
+                                    )
+                                   );    
+                               });
+                           }
+//                            $("#read ul").append(response);
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_revs' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
+                       dataType: "text",
+                       success: function(response) {
+                            $("#write .leftDocument").remove();
+                           if ($(response).find("object").length == 0) {
+                               $('#write ul').append(
+                                $('<li class="leftDocument">').append(
+                                    $('<div>').append(
+                                        $('<a>').attr('href','/browse/').append("No Drafts")
+                                    )
+                                )
+                               );                                
+                           } else {
+                               $(response).find("object").each(function() {
+                                   title = $(this).find('[name="document_title"]').text();
+                                   hash = $(this).find('[name="link_hash"]').text();
+                                   $('#write ul').append(
+                                    $('<li class="leftDocument">').append(
+                                        $('<div>').append(
+                                            $('<a>').attr('href','/write/' + hash).append(title)
+                                        )
+                                    )
+                                   );    
+                               });
+                           }
+                           $('#write ul').append(
+                                $('<li class="leftDocument">').append(
+                                    $('<div>').append(
+                                        $('<a class="newDocButton">').attr('href','#').append("New Document")
+                                    )
+                                )
+                            ); 
+                           
+                            $(".newDocButton").on("click", function(){
+                                $("#newDocFormBorder").show();
+                            });
+
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_docs' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
+                       dataType: "text",
+                       success: function(response) {
+                            $("#pub .leftDocument").remove();
+                           if ($(response).find("object").length == 0) {
+                               $('#pub ul').append(
+                                $('<li class="leftDocument">').append(
+                                    $('<div>').append(
+                                        $('<a>').attr('href','/publish/mydocs/').append("No Drafts Ready For Publication")
+                                    )
+                                )
+                               );                                
+                           } else {
+                               $(response).find("object").each(function() {
+                                   title = $(this).find('[name="document_title"]').text();
+                                   hash = $(this).find('[name="link_hash"]').text();
+                                   $('#pub ul').append(
+                                    $('<li class="leftDocument">').append(
+                                        $('<div>').append(
+                                            $('<a>').attr('href','/browse/read/' + hash).append(title)
+                                        )
+                                    )
+                                   );    
+                               });
+                           }
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_edits' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
+                       dataType: "text",
+                       success: function(response) {
+                            $("#edit .leftDocument").remove();
+                           if ($(response).find("object").length == 0) {
+                               $('#edit ul').append(
+                                $('<li class="leftDocument">').append(
+                                    $('<div>').append(
+                                        $('<a>').attr('href','/edit/myedits').append("No Edit Requests")
+                                    )
+                                )
+                               );                                
+                           } else {
+                               $(response).find("object").each(function() {
+                                   title = $(this).find('[name="document_title"]').text();
+                                   hash = $(this).find('[name="link_hash"]').text();
+                                   $('#edit ul').append(
+                                    $('<li class="leftDocument">').append(
+                                        $('<div>').append(
+                                            $('<a>').attr('href','/edit/' + hash).append(title)
+                                        )
+                                    )
+                                   );    
+                               });
+                           }
+                       }
+                  }); 
+                
+                
+              $(".leftAction").dropit({action: "mouseenter"});
+                
+            function postBookmark(docId, charOffset, active) {
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'browse:add_bookmark' %}",
+                           data: {'doc_id': docId,  'offset': charOffset, 'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5, 'active':active},
+                           dataType: "text",
+                           success: function(response) {
+                               $("#read .leftDocument").remove();
+                               $(response).find("object").each(function() {
+                                   title = $(this).find('[name="document_title"]').text();
+                                   hash = $(this).find('[name="link_hash"]').text();
+                                   $('#read ul').append(
+                                    $('<li class="leftDocument">').append(
+                                        $('<div>').append(
+                                            $('<a>').attr('href','/browse/read/' + hash).append(title)
+                                        )
+                                    )
+                                   );    
+                               });
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });                 
+            }
+                      
+function addPreviewListeners() {
+              $(".saveForLater").on("click", function(){
+                    $(this).toggleClass("bookmarked");
+                  postBookmark($(this).closest(".textPaddingDiv").find(".bookmarkId").attr('name'), 0, $(this).hasClass("bookmarked"));
+              });
+
+              $(".twoCents").on("click", function(){
+                  $(this).toggleClass("activeVote");
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'browse:add_vote' %}",
+                           data: {'doc_id': $(this).closest(".textPaddingDiv").find(".bookmarkId").attr('name'), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      }); 
+                });
+}
+                addPreviewListeners();
+/*                $(".leftAction").on("mouseenter", function() {
+                    $(this).find(".leftDocument").slideDown("fast");
+                });
+                $(".leftAction").on("mouseleave", function() {
+                    $(document).find(".leftDocument").slideUp("fast");
+                });*/
+                
+                
+                
+                {% else %}
+                
+                $("#write, #edit, #pub, .twoCents").on("click", function(e) {
+                    e.preventDefault();
+                   $("#registerFormBorder").show();
+                });
+                {% endif %}
+                
+                $(document).on("keyup", function(e) {
+                    if (e.keyCode == 27) {
+                        switchZen();
+                        $(".latestMarker").remove();
+                        $(".popup").hide();
+                    }
+                });
+                                   
+               $(".cancel").on("click", function() {
+                   $(".latestMarker").remove();
+                   $(".popup").hide();
+               });
+                                   
+               $(".registerButton").on("click", function(event) {
+                   $("#registerFormBorder").show();
+               });
+                                   
+//                $(".articlePreview").html(get3());
+              
+              function switchZen() {
+                        $(".column").toggleClass("zen");
+                              if ($(document).find(".column").hasClass("zen")) {  
+                                  $("#leftColumn").animate({"opacity":"0"});
+//                                  $("#leftColumn").animate({"margin-left":"-=200px"});
+                                  $("#rightColumn").animate({"opacity":"0"});
+                                  $("#header").animate({"margin-top":"-200px"});
+//                                  $("#rightColumn").animate({"margin-right":"-=290px"});
+                              } else {
+//                                  $("#leftColumn").animate({"margin-left":"-100%"});
+                                  $("#leftColumn").animate({"opacity":"1"});
+                                  $("#rightColumn").animate({"opacity":"1"});
+                                  $("#header").animate({"margin-top":"0px"});
+        //                          $("#rightColumn").animate({"margin-left":"-290px"});
+                              }
+                  
+              }
+              
+              $(window).on("resize",function(){
+                        if ($(".column").hasClass("zen"))  {
+                            $("#leftColumn").css({"margin-left":"-=200px"});
+                            $("#rightColumn").animate({"margin-left":"-290px"});
+                        }
+//                  $('#leftColumn').css("margin-left",$('#leftColumn').width()-275+"px");
+              });
+          });
+      </script>
+  </head>
+  <body>
+      
+<div id="maincontainer">
+                <div class="account"><img src="http://placehold.it/80x80"><div class="username">
+                        {% if not user.is_authenticated %}
+                            <form method="post" action="{% url 'browse:login' %}">
+                              {{ auth_form.non_field_errors }}
+                              <p>
+                                {{ auth_form.username.errors }}
+                                <input type="text" name="username" id="id_username" placeholder="Username"> 
+                              </p>
+                              <p>
+                                {{ auth_form.password.errors }}
+                                <input  type="password" name="password1" id="id_password" placeholder="Password"> 
+                              </p>
+                              <p>
+                                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                <input type="submit" value="Login">
+                                  <input class="registerButton" type="button" value="Register">
+                                <input type="hidden" name="next" value="{{ next }}">
+                              </p>
+                            </form>
+                        {% else %}
+                    {% if user.twocentsuser.has_unread_message %}
+                    <a href="{% url 'browse:messages' page=1%}" ><i class="fa fa-envelope"></i></a>
+                    {% else %}
+                    <a href="{% url 'browse:messages' page=1%}" ><i class="fa fa-envelope-o"></i></a>
+                    {% endif %}
+                    <a href="/browse/author/{{user.username}}">{{user.username}}</a>
+                            <p><a href="{% url 'browse:logout' %}" style="float:left">Logout</a></p>
+                        {% endif %}
+                    </div></div>
+    <div id="twothirdswrapper">
+        <div class="paddingDiv">
+      <div id="header" class="section">
+          <div class="column">
+            <div class="textPaddingDiv">
+               {% block headerContent %}{% endblock %}
+            </div>
+          </div>
+        </div>
+      </div>
+    <div id="contentwrapper">
+      <div id="middleColumn" class="section">
+          
+
+            <div id="registerFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" method="post" action="/browse/register/">
+                <h2>Create an account</h2>
+                  {{ form.as_p }}
+                  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                  <input type="submit" value="Create the account">
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+          
+
+
+            
+            <div id="newDocFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm" id="newDocForm" action="/write/new/" method="post">{% csrf_token %}<h3>New Document</h3>
+                          <h4 class="sourceInputName">Title</h4><input type="text" name="doc_title"/><br>
+                    <input type="submit" class="newDocSubmit" value="Create Document">
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+          
+          {% block middleContent %}{% endblock %}
+      </div>
+    </div>
+    <div id="rightColumn" class="section">
+        <!-- Unnamed () -->
+        <div class="paddingDiv">
+            <div class="articleHeader"><div class="adPaddingDiv"><b>Sponsored: </b><img src="http://placehold.it/250x250"></div></div>
+        </div>
+        <div class="paddingDiv">
+            <div class="articleHeader"><div class="textPaddingDiv"><b>Right Column: <em>280px</em></b></div></div>
+        </div>
+        <div class="paddingDiv">
+            <div class="articleHeader"><div class="textPaddingDiv"><b>Right Column: <em>280px</em></b></div></div>
+        </div>
+        <div class="paddingDiv">
+            <div class="articleHeader"><div class="textPaddingDiv"><b>Right Column: <em>280px</em></b></div></div>
+        </div>
+    </div>
+        </div>
+    
+    <div id="leftColumn" class="section">
+        <div class="leftPaddingDiv">
+            <div class="column">
+                <div class="textPaddingDiv">
+                    <div class="leftActions">
+                        <div class="leftAction" id="read"><li><a href="{% url 'browse:index' %}"><i class="fa fa-newspaper-o"></i><div class="actionText">Read</div></a>
+                                <ul></ul></li>
+                        </div>
+                        <div class="leftAction" id="write"><li><a href="{% url 'write:mydrafts' %}"><i class="fa fa-pencil"></i><div class="actionText">Write</div></a>
+                                <ul></ul></li></div>
+                        <div class="leftAction" id="edit"><li><a href="{% url 'edit:myedits' %}"><i class="fa fa-eraser"></i><div class="actionText">Edit</div></a>
+                                <ul></ul></li></div>
+                        <div class="leftAction" id="pub"><li><a href="{% url 'publish:mydocs' %}"><i class="fa fa-bullhorn"></i><div class="actionText">Publish</div></a>
+                                <ul></ul></li></div>
+                    </div>
+                        <!--b>Left Column: <em>230px</em></b-->
+                </div>
+                
+          {% block leftContent %}{% endblock %}
+            </div>
+            </div>
+    </div>
+</div>
+      </div>

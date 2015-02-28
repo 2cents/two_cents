@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+//var pubs = {{publications | safe}};
+
+//for (var key in pubs) {
+//    var pub_name = pubs[key]["fields"]["publication_name"];
+//    $(".authorPubs").find("ul").append($('<li>').append($('<a>').attr("href", "/browse/publication/" + pub_name).append(pub_name)));
+//}
+
+{% if author == user %}
+    $(".profileEditLink").on("click", function() {
+        $(".aboutTheAuthor").attr("disabled", false);
+        $(".aboutTheAuthor").focus();
+    });
+    $(".aboutTheAuthor").on("keyup", function() {
+        $(".saveEditLink").show();
+    });
+
+
+   $(".saveEditLink").on("click", function() {
+      $.ajax({
+               type: "POST",
+               url: "{% url 'browse:save_author_desc' %}",
+               data: {'desc': $(".aboutTheAuthor").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+               dataType: "text",
+               success: function(response) {
+                    $(".aboutTheAuthor").val(response);
+                    $(".aboutTheAuthor").attr("disabled", true);
+                    $(".saveEditLink").hide();
+                },
+                error: function(rs, e) {
+                       alert(rs.responseText);
+                }
+          });
+
+    });
+{% else %}
+
+   $(".subscribeButton").on("click", function() {
+      $.ajax({
+               type: "POST",
+               url: "{% url 'browse:follow_user' %}",
+               data: {'username': "{{author.username}}", 'csrfmiddlewaretoken': '{{csrf_token}}'},
+               dataType: "text",
+               success: function(response) {
+                    alert(response);
+                },
+                error: function(rs, e) {
+                       alert(rs.responseText);
+                }
+          });
+
+    });
+
+{% endif %}
+$(".sendMessage").on("click", function() {
+    $("#messageFormBorder").show();
+});
+$(".addLink").on("click", function() {
+    $("#newLinkFormBorder").show();
+});
+{% endblock %}
+{% block headerContent %}
+{% if author != user %}
+{% if subscribed %}
+<a href="#0"><div class="subscribeButton">Subscribed <i class="fa fa-check"></i></div></a>
+{% else %}
+<a href="#0"><div class="subscribeButton">Subscribe <i class="fa fa-user-plus"></i></div></a>
+{% endif %}
+<i class="fa fa-envelope-o sendMessage"></i>
+{% endif %}
+<div class="title" name="author_name">{{author.username}}</div>
+{% endblock %}
+
+{% block middleContent %}
+                <div class="paddingDiv">
+                    <div class="userHeader">
+                        <div>
+                            <div class="authorSummary"><div class="textPaddingDiv"><h3>About the author</h3>
+                                {% if author == user %}<a href="#0" class="profileEditLink">Edit</a><a href="#0" class="saveEditLink">Save Changes</a>{% endif %}<textarea class="aboutTheAuthor" disabled>{{author.twocentsuser.author_description}}</textarea>
+                                </div></div>
+                            <div class="authorPlugs"><div class="textPaddingDiv"><h3>My Links</h3>{% if author == user %}<a href="#0" class="addLink">Add Link</a>{% endif %}
+                                <ul>
+                                    {% for link in author.link_set.all %}
+                                    <li><a href="{{ link.href }}">{{link.display_name}}</a></li>
+                                    {% endfor %}
+                                </ul>
+                                </div></div>
+                            <div class="authorPubs"><div class="textPaddingDiv">
+                                <h3>My Publications</h3>
+                                <ul>
+                                    {% for pub in author.publication_set.all %}
+                                    <li><a href="{% url 'browse:publication' name=pub.publication_name %}">{{pub.publication_name}}</a></li>
+                                    {% endfor %}
+                                </ul>
+                                </div></div>
+                        </div>
+                    </div>
+                </div>
+
+    {% load set_var %}
+    {% load increment_var %}
+    {% set previewCounter = 0 %}
+        {% for document in latest_document_list %}
+            {% if forloop.counter|divisibleby:12 %}
+                {% set previewCounter = 0 %}
+            {% endif %}
+              <div class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader previewClass{{previewCounter}}">
+                        <div class="textPaddingDiv">
+<!--                            <form method="post" action="{% url 'browse:add_bookmark' %}" >
+                                {% csrf_token %}
+                                <input type="image" class="saveForLater" src="http://placehold.it/30x30">
+                                <input type="hidden" name="doc_id" value="{{document.id}}">
+                                <input type="hidden" name="bookmark_user" value="{{user.id}}">
+                            </form-->
+                            {% if document.id in bookmarks %}
+                            <i class="fa fa-bookmark saveForLater bookmarked" id="bookmark{{document.id}}"></i>
+                            {% else %}
+                            <i class="fa fa-bookmark saveForLater" id="bookmark{{document.id}}"></i>
+                            {% endif %}
+                            {% if document.id in doc_votes %}
+                            <a class="twoCents activeVote" id="vote{{document.id}}" src="http://placehold.it/30x30" href="#0">2&cent;</a>
+                            {% else %}
+                            <a class="twoCents" id="vote{{document.id}}" src="http://placehold.it/30x30" href="#0">2&cent;</a>
+                            {% endif %}
+                            <input class="bookmarkId" type="hidden" name="{{document.id}}">
+                            <h2><a href={% url 'browse:read' document.link_hash %} name={{document.link_hash}}>{{ document.document_title }}</a></h2>
+                            <div class="articlePreview">
+                                <a href={% url 'browse:read' document.link_hash %} class="previewLink">{{ document.document_text | safe}}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                  
+            
+            <div id="messageFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm messageForm" id="messageForm" action="{% url 'browse:send_message' %}" method="post">{% csrf_token %}<h3>New Message</h3><h4>To: {{author.username}}</h4><textarea name="message_content"></textarea>
+                            <input type="hidden" name="recipient" value="{{author.username}}">
+                          <input type="submit" value="Send">
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+              <!--/div>
+              <div  class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader{{previewCounter}}"><div class="textPaddingDiv"><img class="saveForLater" src="http://placehold.it/30x30"><h2>{{ document.document_title }}</h2><h4>{{ document.user.username }}</h4><div class="articlePreview">{{ document.document_text }}</div></div></div>
+                </div>
+              </div>
+              <div  class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader{{previewCounter}}" style="height:612px"><div class="textPaddingDiv"><img class="saveForLater" src="http://placehold.it/30x30"><h2>{{ document.document_title }}</h2><h4>{{ document.user.username }}</h4><div class="articlePreview">{{ document.document_text }}</div></div></div>
+                </div>
+              </div>
+              <div  class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader{{previewCounter}}"><div class="textPaddingDiv"><img class="saveForLater" src="http://placehold.it/30x30"><h2>{{ document.document_title }}</h2><h4>{{ document.user.username }}</h4><div class="articlePreview"></div>{{ document.document_text }}</div></div>
+                </div-->
+              </div>
+                {% increment previewCounter %}
+              {% endfor %}
+
+            
+            <div id="newLinkFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm" id="newLinkForm" action="{% url 'browse:new_link' %}" method="post">{% csrf_token %}<h3>New Link</h3>
+                          <h4 class="sourceInputName">Destination</h4><input type="text" name="href"/><br>
+                          <h4 class="sourceInputName">Display Name</h4><input type="text" name="display_name"/><br>
+                    <input type="submit" value="Create Link">
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+{% endblock %}
+{% block leftContent %}
+
+
+                    <div class="textPaddingDiv">
+                        <div class="leftActions">
+                            <div class="manageSubscriptions"><a href="#" class="actionText">Manage Subscriptions</a></div>
+                        </div>
+                    </div>
+
+{% endblock %}

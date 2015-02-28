@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+
+                function saveDoc() {
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:save_document' %}",
+                           data: {'doc_id': $("#docId").val(), 'doc_title': $(".title").val(), 'doc_text': htmlDecode($("#textbody").text()), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+                                $("#docId").val(response);
+                                alert($("#docId").val());
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });
+
+                }
+
+              $(".saveDocument").on("click", function(){ 
+                    saveDoc();
+                });
+
+
+              $(".requestEdit").on("click", function(){
+                                   alert($(".editorUsername").val());
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:request_edit' %}",
+                           data: {'doc_title': $(".title").val(), 'doc_text': $("#textbody").text(), 'doc_id': $("#docId").val(), 'editor_username': $(".editorUsername").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+                                    alert("Requested Edit from " + $(".title").val())
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      }); 
+                });
+
+
+
+html = htmlDecode("{{selected_doc.document_text}}");
+$(".editField").append(html);
+
+
+
+$(".title").val("{{selected_doc.document_title}}");
+
+$(".cts-1").wrap('<div class="trackedChange" style="display:inline" contenteditable="false"></div>');
+
+//$(".cts-1").wrap('<div class="dropClass" style="display:inline"><li class="ctsWrapper" style="display:inline"></li></div>');
+
+//$(".cts-1").after('<ul><div class="accept change">Accept</div><div class="reject change">Reject</div></ul>');
+
+//$(".dropClass").dropit({action: "mouseenter", triggerEl : ".cts-1"});
+
+    $(".trackedChange").on("mouseenter", function() {
+        $(document).find(".trackedChange").removeClass("currentTarget");
+        $(this).addClass("currentTarget");
+});
+
+function removeIns(){
+     $(".currentTarget").remove() 
+}
+
+    $(".ins").tooltip({
+        show: null, // show immediately 
+        content: '<button class="accept change" onclick=$(".currentTarget").after($(".currentTarget").text()).remove()><img src="http://placehold.it/20x20"></button><button class="reject change" onclick=$(".currentTarget").remove()><img src="http://placehold.it/20x20"></button>', //from params
+//        track: true,
+        position: { my: "center top+10", at: "center" },
+        hide: { effect: "" }, //fadeOut
+        close: function(event, ui){
+            ui.tooltip.hover(
+                function () {
+                    $(this).stop(true).fadeTo(400, 1); 
+                },
+                function () {
+                    $(this).fadeOut("400", function(){
+                        $(this).remove(); 
+                    })
+                }
+            );
+        }
+    });
+
+    $(".del").tooltip({
+        show: null, // show immediately 
+        content: '<button class="accept change" onclick=$(".currentTarget").remove()><img src="http://placehold.it/20x20"></button><button class="reject change" onclick=$(".currentTarget").after($(".currentTarget").text()).remove()><img src="http://placehold.it/20x20"></button>', //from params
+//        track: true,
+        position: { my: "center top+10", at: "center" },
+        hide: { effect: "" }, //fadeOut
+        close: function(event, ui){
+            ui.tooltip.hover(
+                function () {
+                    $(this).stop(true).fadeTo(400, 1); 
+                },
+                function () {
+                    $(this).fadeOut("400", function(){
+                        $(this).remove(); 
+                    })
+                }
+            );
+        }
+    });
+
+
+{% endblock %}
+{% block headerContent %}
+
+<form action="{% url 'write:publish_document' %}" method="post" id="publishForm">
+    {% csrf_token %}
+                <input class="title" type="text" name="doc_title" placeholder="My Magnum Opus"/>
+                <input id="docId" type="hidden" value="0"/>
+</form>
+{% endblock %}
+
+{% block middleContent %}
+        <div class="paddingDiv">
+          <div class="column"><div class="articlePaddingDiv"><div id="textbody" class="editField" contenteditable="true"></div></div></div>
+  <input type="submit" form="publishForm" value="Submit">
+
+            <div class="saveDocument">Save</div>
+                <input class="editorUsername" type="text" placeholder="Editor"/>
+            <div class="requestEdit">Request Edit</div>
+            
+            <script type="text/javascript">
+            
+            var u_id = "{{user.id}}";
+            var u_name = "{{user.username}}";
+     // setup and start event handling for track changes
+     tracker.startTracking();
+            
+}); 
+            </script>
+</div>
+{% endblock %}

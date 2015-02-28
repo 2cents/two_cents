@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+    $(".saveDocument").on("click", function() {
+        //commentPrompt();
+});
+
+
+
+                $(".addComment").on("click", function() {
+                    var d = new Date();
+                    var n = d.getTime();
+//                    var comment = $('<div class="comment" id=' + n + '>').append($(".commentFormTextarea").val());
+//                    var comment = '<div class="comment">' + $(".commentFormTextarea").val() + '</div>';
+                    var rightColumnComment = '<a href=#' + n + '>' + $(".commentFormTextarea").val() + '</a>';
+
+                    prependToRightColumn(rightColumnComment);
+                    $(".latestMarker").attr("title", $(".commentFormTextarea").val());
+                    $(".latestMarker").attr("id", n);
+                    
+                    $(".latestMarker").tooltip({
+                        show: null, // show immediately 
+                        content: $(".commentFormTextarea").val(), //from params
+                //        track: true,
+                        hide: { effect: "" }, //fadeOut
+                        close: function(event, ui){
+                            ui.tooltip.hover(
+                                function () {
+                                    $(this).stop(true).fadeTo(400, 1); 
+                                },
+                                function () {
+                                    $(this).fadeOut("400", function(){
+                                        $(this).remove(); 
+                                    })
+                                }
+                            );
+                        }
+                    });
+                    $(".ui-helper-hidden-accessible").hide();
+                    $(".latestMarker").removeClass("latestMarker");
+                    $(".popup").hide();
+                    $(".commentFormTextarea").val("");
+                });
+            
+                $(document).on("keydown", function(e) {
+                    if (e.keyCode == 188 && e.ctrlKey) {
+                        commentPrompt();
+                    }
+                });
+
+            function commentPrompt() {
+                        var image = document.createElement('i');
+//                        image.src = "http://placehold.it/15x20";
+                        image.className = "commentMarker latestMarker fa fa-comment";
+                        try{
+                            tracker.insertAtEnd(image, range);
+                        } catch(e) {
+                        }
+                        $(".commentMarker").parent().removeClass("ins");
+
+                        $("#commentFormBorder").css("display", "block");
+                        $(".commentFormTextarea").focus();
+
+                        var range = tracker.getCurrentRange();
+            }
+
+            function saveDocAsEdit() {
+                    alert($("#docId").val());
+                    alert($(".title").text());
+                    alert($("#textbody").html());
+                    var editCount = $(".cts-1").size();
+                    var editorsDict = {};
+                    $(".cts-1").each(function() {
+                        var username = $(this).data("username");
+                        editorsDict[username] = 1;
+                    });
+                    var editorsString = "";
+                    for (var key in editorsDict) {
+                            editorsString = editorsString.concat(key).concat(":");
+                    }
+                    alert(editorsString);
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:save_document_as_edit' %}",
+                           data: {'doc_id': $("#docId").val(), 'doc_title': $(".title").text(), 'doc_text': $("#textbody").html(), 'edit_count' : editCount, 'editors_dict' : editorsString, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+//                                $("#docId").val(response);
+                                alert($("#docId").val());
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });
+
+                }
+
+            $(".submitEdit").on("click", function() {
+                saveDocAsEdit();
+
+            });
+
+
+
+{% endblock %}
+{% block headerContent %}
+
+<div class="title" type="text" name="doc_title">{{selected_doc.document_title}}</div>
+                <input id="docId" type="hidden" value="{{selected_doc.original_id.id}}"/>
+{% endblock %}
+
+{% block middleContent %}
+
+        <div class="paddingDiv">
+          <div class="extendingColumn"><div class="articlePaddingDiv">
+					<div id="textbody" class="editField">
+                        <article>{{selected_doc.document_text | safe}}</article>
+                    </div>	
+            </div></div>
+  <!--input type="submit" form="publishForm" value="Submit"-->
+
+            <!--div class="submitEdit">Submit Edit</div-->
+            
+            <script type="text/javascript">
+            
+            var u_id = "{{user.id}}";
+            var u_name = "{{user.username}}";
+                
+            $(function() {
+                window.tracker = new ice.InlineChangeEditor({
+                // element to track - ice will make it contenteditable
+                element: document.getElementById('textbody'),
+                // tell ice to setup/handle events on the `element`
+                handleEvents: true,
+    
+                // set a user object to associate with each change
+                currentUser: { id: u_id, name: u_name },
+				plugins : ['IceAddTitlePlugin', 'IceSmartQuotesPlugin', 'IceEmdashPlugin', {
+						name : 'IceCopyPastePlugin',
+						settings : {
+							pasteType : 'formattedClean',
+							preserve : 'p,a[href],i,em,b,span,ul,ol,li,hr'
+						}
+					}
+				    ]
+                });
+                // setup and start event handling for track changes
+                tracker.startTracking();
+            }); 
+            </script>
+            
+              
+
+            
+            <div id="commentFormBorder" class="popupFormBorder popup">
+                      <div class="popupForm" id="commentForm"><h3>New Comment</h3><textarea form="commentForm" class="commentFormTextarea" name="comment"></textarea>
+                          <button class="addComment">Add Comment</button>
+                    <button type="button" class="cancel">Cancel</button>
+                      </div>
+                  </div>
+              
+</div>
+{% endblock %}
+{% block leftContent %}
+
+                    <div class="textPaddingDiv"><div class="leftActions"><div class="submitEdit leftAction"><a href="#" class="actionText">Submit Edit</a></div></div></div>
+{% endblock %}

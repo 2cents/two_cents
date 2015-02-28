@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+
+{% block onReady %}     
+
+
+
+function htmlDecode(input){
+  var e = document.createElement('div');
+  e.innerHTML = input;
+  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+}
+
+gpOffset = 0
+lastRatio = $(document).width()/screen.width;
+prevWindowOffset = 0;
+$( window ).scroll(function() {
+
+    ratio = $(document).width()/screen.width;
+    if (ratio == lastRatio ) {
+        var leftPadding =  parseInt($(".articlePaddingDiv").css("padding-left").replace("px", "")) - 30;
+        bookmarkOffset = $( ".bookmark" ).offset();
+        if ($(window).scrollTop() + $(window).height() < bookmarkOffset["top"] + $( ".bookmark" ).height()  && prevWindowOffset + $(window).height() >=  bookmarkOffset["top"] + $( ".bookmark" ).height()) {
+            $( ".bookmark" ).offset({top: $(window).scrollTop() + $(window).height() - $( ".bookmark" ).height(), left : $("#rightHere").offset()["left"] + leftPadding});
+            prevWindowOffset = $(window).scrollTop();                                            
+        }     
+        if ($(window).scrollTop() >= bookmarkOffset["top"] && prevWindowOffset <= bookmarkOffset["top"]) {
+            $( ".bookmark" ).offset({top: $(window).scrollTop(), left : $("#rightHere").offset()["left"] + leftPadding});
+            prevWindowOffset = $(window).scrollTop();                                            
+        }
+                                                                
+        pOffset = -1;
+        $("#rightHere").find("p").each(function() {
+            var offset = $(this).offset()["top"];
+    //        alert(offset + " " + $( ".bookmark" ).offset()["top"]);
+            if (offset <= $( ".bookmark" ).offset()["top"]) {
+                pOffset = pOffset + 1;
+            } else {
+    //            alert("Chose " + pOffset);
+                gpOffset = pOffset;
+                return false;
+            }
+        });
+    }
+});
+                                                                
+$( window ).resize(function(e) {
+lastRatio = $(document).width()/screen.width;
+var leftPadding =  parseInt($(".articlePaddingDiv").css("padding-left").replace("px", "")) - 30;
+        pCount = 0;
+        $("#rightHere").find("p").each(function() {
+            if (pCount >= gpOffset) {
+                $( ".bookmark" ).offset({top: $(this).offset()["top"], left : $("#rightHere").offset()["left"] + leftPadding});
+//                alert(gpOffset);
+                return false;
+            } else {
+                pCount = pCount + 1;
+            }
+        });
+});
+
+function addBookmark() {
+    var el = document.getElementById("rightHere");
+    var range = window.getSelection().getRangeAt(0);
+    var offset =  getCharacterOffsetWithin(range, el);
+    placeBookmarkAtOffset(offset, el);
+    return offset;
+}
+
+setInterval(function() {
+    if ($(".bookmark").hasClass("bookmarked")) {
+        postBookmark("{{selected_doc.id}}", gpOffset, true);
+    }
+}, 180000);
+
+function getCharacterOffsetWithin(range, node) {
+    var treeWalker = document.createTreeWalker(
+        node,
+        NodeFilter.SHOW_TEXT,
+        function(node) {
+            var nodeRange = document.createRange();
+            nodeRange.selectNodeContents(node);
+            return nodeRange.compareBoundaryPoints(Range.END_TO_END, range) < 1 ?
+                NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        },
+        false
+    );
+
+    var charCount = 0;
+    while (treeWalker.nextNode()) {
+        charCount += treeWalker.currentNode.length;
+    }
+    if (range.startContainer.nodeType == 3) {
+        charCount += range.startOffset;
+    }
+    return charCount;
+}
+
+function placeBookmarkAtOffset(bookmarkPosition, node) {
+    $(".bookmark").remove();
+    var bookmark = document.createElement('i');
+    bookmark.className = 'fa fa-bookmark bookmark';
+    $(node).append(bookmark);
+                                                                               
+              
+        pCount = 0;
+        leftPadding =  parseInt($(".articlePaddingDiv").css("padding-left").replace("px", "")) - 30;
+        $(node).find("p").each(function() {
+            if (pCount >= bookmarkPosition) {
+                $( ".bookmark" ).offset({top: $(this).offset()["top"], left : $(node).offset()["left"] + leftPadding});
+                return false;
+            } else {
+                pCount = pCount + 1;
+            }
+        });
+                                   
+              $(".bookmark").on("click", function(){
+                    $(this).toggleClass("bookmarked");
+                    postBookmark("{{selected_doc.id}}", gpOffset, $(this).hasClass("bookmarked"));
+              });
+    return bookmarkPosition;
+}
+
+var bookmarkOffset = "{{bookmark}}";
+if (bookmarkOffset != "none") {
+    placeBookmarkAtOffset(bookmarkOffset, $('#rightHere'));
+    $(document).scrollTop( $(".bookmark").offset().top );  
+     $(".bookmark").toggleClass("bookmarked");
+} else {
+    placeBookmarkAtOffset(0, $('#rightHere'));
+}
+
+
+$(".addComment").on("click", function(){
+    postComment(0, $("#commentText"));
+});
+
+function getDateDiff(date1, date2) {
+    var second = 1000,
+    minute = second * 60,
+    hour = minute * 60,
+    day = hour * 24,
+    week = day * 7;
+    date1 = new Date(date1).getTime();
+    date2 = new Date(date2).getTime();
+    var timediff = date2 - date1;
+//    if (isNaN(timediff)) return NaN;
+
+    interval = "minutes";
+    if (timediff <= second) {
+        return "just now";
+    }
+    if (timediff > second) {
+        interval = "seconds";
+    }
+    if (timediff > minute) {
+        interval = "minutes";
+    }
+    if (timediff > hour) {
+        interval = "hours";
+    }
+    if (timediff > day) {
+        interval = "days";
+    }
+    if (timediff > week) {
+        interval = "weeks";
+    }
+
+    switch (interval) {
+    case "years":
+        return date2.getFullYear() - date1.getFullYear();
+    case "months":
+        return ((date2.getFullYear() * 12 + date2.getMonth()) - (date1.getFullYear() * 12 + date1.getMonth()));
+    case "weeks":
+        return Math.floor(timediff / week) + " " + interval + " ago";
+    case "days":
+        return Math.floor(timediff / day) + " " + interval + " ago";
+    case "hours":
+        return Math.floor(timediff / hour) + " " + interval + " ago";
+    case "minutes":
+        return Math.floor(timediff / minute) + " " + interval + " ago";
+    case "seconds":
+        return Math.floor(timediff / second) + " " + interval + " ago";
+    }
+}
+
+function addCommentVote(id) {
+      $.ajax({
+               type: "POST",
+               url: "{% url 'browse:add_comment_vote' %}",
+               data: {'comment_id': id, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+               dataType: "text",
+               success: function(response) {
+
+                },
+                error: function(rs, e) {
+                       alert(rs.responseText);
+                }
+          }); 
+}
+
+function addReplyListener(element) {
+    element.on("click", function(){
+        parentComment = element.closest(".comment").find(".commentBody").first().attr("id");
+        commentId = parentComment.replace("comment", "");
+        textarea = $(this).closest(".comment").find("textarea").first();
+        alert(commentId);
+        postComment(commentId, textarea);
+    });
+    
+    element.closest(".comment").find(".commentVote").first().on("click", function(){
+        parentComment = element.closest(".comment").find(".commentBody").first().attr("id");
+        commentId = parentComment.replace("comment", "");
+        $(this).toggleClass("activeVote");
+        addCommentVote(commentId);
+    });
+}
+
+function updateCommentVotes(comment_votes) {
+    for (var key in comment_votes) {
+        if(comment_votes[key]) {
+            voteId = "#comment" + key + "vote";
+            $(voteId).addClass("activeVote");
+        }
+    }
+}
+
+function addComment(comments, append) {
+            now = new Date();
+           $($(comments).find("object").get().reverse()).each(function() {
+                id = "comment" + $(this).attr("pk");
+                text = $(this).find('[name="comment_text"]').text();
+                username = $(this).find('[name="username"]').text();
+                parent = $(this).find('[name="parent"]').text();
+                parentId = "comment" + parent;
+                date = new Date($(this).find('[name="date"]').text());
+                now = new Date();
+                diff = getDateDiff(date, now);
+                if (parent != "0") {
+                    parentId = "#comment" + parent;
+                        $(parentId).closest(".comment").find(".replyDiv").first().prepend(
+                            $('<div class="comment">').append(
+                                $('<div class="commentHeader" >').append(" &middot; " + diff).prepend(
+                                    $('<a class="inReplyTo">').attr("href", parentId).append(" &middot; &#10149;" + $(parentId).attr("data-username")).prepend(
+                                        $('<a href=/browse/author/'+ username + '>').append(username)
+                                    )
+                                ) 
+                            ).append(
+                                    $('<div class="commentBody">').attr("id", id).attr("data-username", username).append(text)
+                            ).append(
+                                    $('<a class="commentReplyButton" href="#0">').append("Reply")
+                            ).append(
+                                    $('<a class="commentVote" href="#0">').attr("id", id + "vote").append("2&cent;")
+                            ).append(
+                                    $('<div class="replyForm">').append(
+                                        $('<textarea>')
+                                    ).append(
+                                        $('<input type="button" class="addReply" value="Comment"/>')
+                                    )
+                            ).append(
+                                $('<div class="replyDiv">')
+                            ).prepend('<hr>')
+
+                        );
+                } else if (append) {
+                        $(".comments").append(
+                            $('<div class="comment">').attr("data-username", username).append(
+                                $('<div class="commentHeader">').append(" &middot; " + diff).prepend(
+                                    $('<a href=/browse/author/'+ username + '>').append(username)
+                                )
+                            ).append(
+                                    $('<div class="commentBody">').attr("id", id).attr("data-username", username).append(text)
+                            ).append(
+                                    $('<a class="commentReplyButton" href="#0">').append("Reply")
+                            ).append(
+                                    $('<a class="commentVote" href="#0">').attr("id", id + "vote").append("2&cent;")
+                            ).append(
+                                    $('<div class="replyForm">').append(
+                                        $('<textarea>')
+                                    ).append(
+                                        $('<input type="button" class="addReply" value="Comment"/>')
+                                    )
+                            ).append(
+                                $('<div class="replyDiv replyDivTop">')
+                            ).append('<hr>')
+
+                        );
+                } else {
+                        $(".comments").prepend(
+                            $('<div class="comment">').attr("data-username", username).append(
+                                $('<div class="commentHeader">').append(" &middot; " + diff).prepend(
+                                    $('<a href=/browse/author/'+ username + '>').append(username)
+                                )
+                            ).append(
+                                    $('<div class="commentBody">').attr("id", id).attr("data-username", username).append(text)
+                            ).append(
+                                    $('<a class="commentReplyButton" href="#0">').append("Reply")
+                            ).append(
+                                    $('<a class="commentVote" href="#0">').attr("id", id + "vote").append("2&cent;")
+                            ).append(
+                                    $('<div class="replyForm">').append(
+                                        $('<textarea>')
+                                    ).append(
+                                        $('<input type="button" class="addReply" value="Comment"/>')
+                                    )
+                            ).append(
+                                $('<div class="replyDiv ReplyDivTop">')
+                            ).append('<hr>')
+
+                        );
+                }
+                addReplyListener($("#" + id).closest(".comment").find(".addReply").first());
+            });
+
+$(".commentReplyButton").on("click", function() {
+    $(".replyForm").hide();
+    $(this).closest(".comment").find(".replyForm").first().show();
+});
+
+} 
+
+    
+
+
+            {% if selected_doc.has_comments %}
+                $("#commentTabHeader").on("click", function() {
+                  $.ajax({
+                           type: "GET",
+                           url: "{% url 'browse:get_comments' %}",
+                           data: {'doc_id': {{selected_doc.id}}, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "json",
+                           success: function(response) {
+//                                $("#commentTabHeader").text("Comments (" + response["count"] + ")");
+                                addComment(response["comments"], 0);
+                                updateCommentVotes(response["comment_votes"]);
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });
+                });
+            {% endif %}
+
+function postComment(parent, textarea){
+                if (parent) {
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'browse:add_comment' %}",
+                           data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'comment_text' : textarea.val(), 'doc_id' : {{selected_doc.id}}, 'parent': parent},
+                           dataType: "text",
+                           success: function(response) {
+                                textarea.val("");
+                                $(".replyForm").hide();
+                                addComment(response, 0);
+                            },
+                            error: function(rs, e) {
+                               alert(rs.responseText);
+                            }
+                      }); 
+                } else {
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'browse:add_comment' %}",
+                           data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'comment_text' : textarea.val(), 'doc_id' : {{selected_doc.id}}},
+                           dataType: "text",
+                           success: function(response) {
+                                textarea.val("");
+                                addComment(response, 0);
+                            },
+                            error: function(rs, e) {
+                               alert(rs.responseText);
+                            }
+                      });
+                }
+}
+
+
+
+
+                $(".tagInput").keyup(function(e) {
+                    if (e.keyCode == 188 || e.keyCode == 13) {
+                        var inputString = $(this).val();
+                        var tags = inputString.split(",");
+                        var index;
+                        if (tags.length > 0) {
+                            for	(index = 0; index < tags.length; index++) {
+                                var newTag = tags[index].trim();
+                                if (newTag.length > 0) { 
+$(this).after($('<div class="tag">').append(newTag).append($('<i id="closeTag" class="fa fa-times" onclick=$(this).closest(".tag").remove()>')));
+                                    $(this).val("");
+                                }
+                            }
+                        }
+                    }
+                });
+
+              $(".addTagsSubmit").on("click", function(){
+                    var tagString = "";
+                    $(this).closest(".tagForm").find(".tag").each(function() {
+                        var tagName = $(this).text();
+                        tagString = tagString.concat(tagName).concat(":");
+                    });
+                        tagString =  tagString.concat($(".tagInput").val()).concat(":");
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'browse:add_tags' %}",
+                           data: {'tags': tagString, 'csrfmiddlewaretoken': '{{csrf_token}}', 'doc_id': {{selected_doc.id}}},
+                           dataType: "text",
+                           success: function(response) {
+//                                $("#docId").val(response);
+//                                alert($("#docId").val());
+                                $(".popup").hide();
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      }); 
+                });
+
+            $(".addTags").on("click", function() {
+                $("#addTagFormBorder").show();
+            });
+
+
+$(".bookmarked").each(function() {
+    $(this).removeClass("bookmarked");
+    postBookmark("{{selected_doc.id}}", gpOffset, $(this).hasClass("bookmarked"));
+});
+
+{% endblock %}
+
+{% block headerContent %}
+
+<div class="title" type="text" name="doc_title">{{selected_doc.document_title}}</div>
+{% endblock %}
+
+{% block middleContent %}
+            <div class="paddingDiv">
+  <div class="cd-tabs">
+		<ul class="topTabs">
+			<li><a data-content="read" class="selected" href="#0">Read</a></li>
+            {% if selected_doc.has_comments %}
+			<li><a data-content="comments" href="#0" id="commentTabHeader">Comments</a></li>
+            {% endif %}
+			<li><a data-content="author" href="#0">Author</a></li>
+		</ul> <!-- cd-tabs-navigation -->
+      <ul class="cd-tabs-content">
+		<li data-content="read" class="selected">
+                <div class="extendingColumn tabbedContent">
+            
+                    <div class="articlePaddingDiv" id="rightHere" >{{selected_doc.document_text | safe}}</div>
+                </div>
+            
+        </li>
+            {% if selected_doc.has_comments %}
+		<li data-content="comments">
+                <div class="extendingColumn tabbedContent">
+                    <div class="articlePaddingDiv" id="rightHere" >
+                      <form class="commentForm">
+                          <textarea form="commentForm" id="commentText" name="comment" placeholder="My two cents..."></textarea>
+                          <input type="button" class="addComment" value="Comment"/>
+                      </form>
+                        <div class="comments"></div>
+                    </div>
+                </div>
+            
+        </li>
+            {% endif %}
+            
+        <li data-content="author">
+                    <div class="userHeader tabbedContent">
+                        <div>
+                            <div class="authorSummary"><div class="textPaddingDiv"><h3>About the author</h3>
+                                {% if author == user %}<a href="#0" class="profileEditLink">Edit</a><a href="#0" class="saveEditLink">Save Changes</a><textarea class="aboutTheAuthor" disabled>{{selected_doc.user.twocentsuser.author_description}}</textarea>{% else %}<br><div style="clear:left">{{selected_doc.user.twocentsuser.author_description}}</div>{% endif %}
+                                </div></div>
+                            <div class="authorPlugs"><div class="textPaddingDiv"><h3>My Links</h3>
+                                <ul>
+                                    {% for link in author.link_set.all %}
+                                    <li><a href="{{ link.href }}">{{link.display_name}}</a></li>
+                                    {% endfor %}
+                                </ul>
+                                </div></div>
+                            <div class="authorPubs"><div class="textPaddingDiv">
+                                <h3>My Publications</h3>
+                                <ul>
+                                    {% for pub in selected_doc.user.publication_set.all %}
+                                    <li><a href="{% url 'browse:publication' name=pub.publication_name %}">{{pub.publication_name}}</a></li>
+                                    {% endfor %}
+                                </ul>
+                                </div></div>
+                        </div>
+                    </div>
+        </li>
+      </ul>
+</div>
+</div>
+
+
+            
+{% if user == selected_doc.user %}
+            <div id="addTagFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="addTagForm">{% csrf_token %}<h3>Tag Document</h3>
+                    <h4>Tags</h4>
+                    <input class="tagInput" type="text"/>
+                    <button type="button" class="addTagsSubmit">Add Tags</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+{% endif %}
+{% endblock %}
+
+{% block leftContent %}
+{% if user == selected_doc.user %}
+                    <div class="textPaddingDiv"><div class="leftActions"><div class="addTags leftAction"><a href="#" class="actionText">Add Tags</a></div></div></div>
+{% endif %}
+{% endblock %}

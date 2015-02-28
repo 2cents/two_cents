@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_docs' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 50},
+                       dataType: "json",
+                       success: function(response) {
+                                console.log(response["docs"]);
+                           $(response["docs"]).find("object").each(function() {
+                               title = $(this).find('[name="document_title"]').text();
+                               id = $(this).attr("pk");
+                               hash = $(this).find('[name="link_hash"]').text();
+                               pubs = $(this).find('[name="publications"]').text();
+                               editorsList = $(this).find('[name="editors_list"]').text();
+                                isPublishedString = "";
+                                isPublished = $(this).find('[name="has_been_published"]').text();
+                                href = '/write/';
+                                if (isPublished === "True") {
+                                    isPublishedString = " | Published";
+                                    href = '/browse/read/';
+                                }
+                                if (editorsList === "") {
+                                   $('.myDocsDiv').append(
+                                        $('<div class="middleSelection">').append(
+                                            $('<a>').attr('id', "document" + id).attr('href',href + hash).append(title + isPublishedString)
+                                        ).append(
+                                            $('<button class="publishButton">').append("Publish")
+                                        ).append(
+                                            $('<input type="hidden" class="docHash">').attr('value', hash)
+                                        )
+                                   );
+                                } else {
+                                   $('.articlePaddingDiv').append(
+                                        $('<div class="middleSelection">').append(
+                                            $('<a>').attr('href','/write/' + hash).append(title)
+                                            .append(
+                                                $('<div class="editString">').append(editorsList)
+                                            )
+                                        )
+                                    )
+                                }
+                           });
+
+                            var pubs = response["pubs"];
+                           for (var key in pubs) {
+                                var pubs_list = pubs[key];
+                                $(pubs_list).find("object").each(function() {
+                                    title = $(this).find('[name="publication_name"]').text();
+                                    docId = "#document" + key;
+                                    $(docId).append(
+                                        $('<span style="display:none" class="publishedSpan">').append(title)
+                                    );
+                                });
+                            }
+
+                            var sub_pubs = response["sub_pubs"];
+                           for (var key in sub_pubs) {
+                                var pubs_list = sub_pubs[key];
+                                $(pubs_list).find("object").each(function() {
+                                    title = $(this).find('[name="publication_name"]').text();
+                                    docId = "#document" + key;
+                                    $(docId).append(
+                                        $('<span style="display:none" class="submittedSpan">').append(title)
+                                    );
+                                });
+                            }
+
+                            $(".publishButton").on("click", function(){
+                                $(".formDocHash").val($(this).closest(".middleSelection").find(".docHash").val());
+                                $("#publishForm").find("option").each(function() {
+                                    var pub_name = $(this).val();
+                                    $(this).removeAttr("disabled");
+                                    $(this).text(pub_name);
+                                });
+                                $("#publishForm").find("select").val("");
+                                $(this).closest(".middleSelection").find(".publishedSpan").each(function() {
+                                    var pub_name = $(this).text();
+                                    $("#publishForm").find('option[value="' + pub_name + '"]').attr('disabled','disabled').append(isPublishedString);
+                                });
+                                $(this).closest(".middleSelection").find(".submittedSpan").each(function() {
+                                    var pub_name = $(this).text();
+                                    $("#publishForm").find('option[value="' + pub_name + '"]').attr('disabled','disabled').append(" | Submitted");
+                                });
+                                $("#publishForm").show();
+                            });
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+
+            $(".newpub").on("click", function(){
+                $("#newPublication").css("display", "block");
+            });
+
+function addPublicationTab(publication) {
+                            var publication_name = publication["publication_name"];
+                            var id = publication["id"];
+                            $(".topTabs").append(
+                                $('<li>').append(
+                                    $('<a href="#0">').attr("data-content", publication_name).append(publication_name)
+                                )
+                            );
+
+
+                            var $memberPermissionForm = $('<form class="memberPermissionForm" action="/publish/change_permissions/" method="post">').attr("id",  "memberPermissionForm" + id).append("<h5>Member Permissions</h5>").append("{% csrf_token %}").append($('<input type="hidden" name="publication_name">').attr("value", publication_name));
+
+                            var $memberSelect = $('<select name="memberPermissionSelect" style="float:left; margin-bottom:30px;"></select>').attr("id",  "#memberPermissionForm" + id);
+                            $.each(publication["editors"], function(name, role) {
+                               $memberSelect.append($('<option>').attr("value", name).attr("data-role", role).append(name));
+                            });
+
+                            $memberPermissionForm.append($memberSelect);
+                            var $editPermission = $('<div style="display:none" style="float:left">').append("<span>Can Edit/Publish Submissions</span>").append($('<input type="checkbox" name="canEdit" value="canEdit" >')).append($('<input type="submit" id="permissionSubmit" name="submissionType" value="Save Permission Changes" style="display:none; float:right">')).append($('<input type="submit" id="removeMember" name="submissionType" value="Remove Member" style="float:right">'));
+                            $memberPermissionForm.append($editPermission);
+
+                            $editPermission.find("input").on("change", function() {
+                                $editPermission.find("#permissionSubmit").toggle();
+                            });
+
+                            $memberSelect.on("change", function() {
+                                if ($(this).val() === ""){
+                                    $editPermission.hide();
+                                } else {
+                                    $editPermission.find("#permissionSubmit").hide();
+                                    var role = $('option:selected', this).attr("data-role");
+                                    if (role === "editor") {
+                                        $editPermission.find("input").prop("checked", true);
+                                    } else {
+                                        $editPermission.find("input").prop("checked", false);
+                                    }
+                                    $editPermission.show();
+                                }
+                            });
+
+                            var $inviteMemberInput = $('<input type="text" name="username">');
+
+                            var $inviteMemberSubmit = $('<input type="submit" id="inviteMemberSubmit" value="Invite Member">');
+
+
+                            $inviteMemberInput.on("keyup", function() {
+                                if ($(this).val() === ""){
+                                    $inviteMemberSubmit.hide();
+                                } else {
+                                    $inviteMemberSubmit.show();
+                                }
+                            });
+
+                            var $subArticles = $('<div class="pubArticles">').append($('<h4>').append("Submitted Articles"));
+
+                            $.each(publication["pending_articles"], function(title, link_hash) {
+                                if (title != "") {
+                                   $subArticles.append(
+                                        $('<form action="{% url 'publish:publish_document' %}" method="post">').append("{%csrf_token%}").append(
+                                            $('<a>').attr('href','/browse/read/' + link_hash).append(title)
+                                        ).append(
+                                            $('<input type="submit" name="submissionType" value="Publish">')
+                                        ).append(
+                                            $('<input type="hidden" name="docHash">').attr('value', link_hash)
+                                        ).append(
+                                            $('<input type="hidden" name="publication_name">').attr('value', publication_name)
+                                        )
+                                    );
+                                }
+                            });
+
+
+
+                            var $managePub =  $('<a href="#0">Manage Publication <i class="fa fa-plus-circle"></i></a>')
+                            $managePub.on("click", function(){
+                                $(this).closest(".articlePaddingDiv").find(".publicationHeader").toggle();
+                                $(this).find("i").toggleClass("fa-plus-circle");
+                                $(this).find("i").toggleClass("fa-minus-circle");
+                            });
+
+                            $(".cd-tabs-content").append(
+                                $('<li>').attr("data-content", publication_name).append(
+                                    $('<div class="extendingColumn tabbedContent">').append(
+                                        $('<div class="articlePaddingDiv">').append(
+                                            $('<h4>').append($managePub)
+                                        ).append(
+                                            $('<div class="publicationHeader" style="display:none">').append(
+                                                $('<form id="inviteMemberForm" style="padding-bottom:50px" action="/publish/invite_member/" method="post">').append("{%csrf_token%}").append(
+                                                    "<h5>Invite Member</h5>"
+                                                ).append($inviteMemberInput).append($('<input type="hidden" name="publication_name">').attr("value", publication_name)).append($inviteMemberSubmit)
+                                            ).append($memberPermissionForm)
+                                        ).append(
+                                            $('<hr style="clear:both;margin:0px">')
+                                        ).append($subArticles)
+                                    )
+                                )
+                            );
+                            $(".publication_select").append(
+                                $('<option>').attr("value", publication_name).append(publication_name)
+                            );
+                            addTabListeners();
+}
+
+         /*   $("#newpubcreate").on("click", function(){
+
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'publish:new_publication' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'publication_name': $("input[name=new_publication_name]").val()},
+                       dataType: "text",
+                       success: function(response) {
+alert($("input[name=new_publication_name]").val());
+                            $(".popup").hide();
+                            addPublicationTab($("input[name=new_publication_name]").val());
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+
+            });*/
+
+
+        {% for publication in publication_list %}
+                $('<option>').attr("value", "{{publication.publication_name}}").append("{{publication.publication_name}}")
+            pub = {};
+            pub["id"] = "{{publication.id}}";
+            pub["publication_name"] = "{{publication.publication_name}}";
+            pub_editors = { "":"", {% for writer in publication.writers.all %}"{{writer.username}}":"writer", {%  endfor %}{% for editor in publication.editors.all %}"{{editor.username}}":"editor", {%  endfor %}"":""};
+            pending_articles = { "":"", {% for article in publication.pendingArticles.all %}"{{article.document_title}}":"{{article.link_hash}}", {%  endfor %}"":""};
+            pub["editors"] = pub_editors;
+            pub["pending_articles"] = pending_articles;
+            addPublicationTab(pub);
+        {% endfor %}
+
+        {% for publication in write_member_list %}
+            $(".write_member_select").append(
+                $('<option>').attr("value", "{{publication.publication_name}}").append("{{publication.publication_name}}")
+            );
+        {% endfor %}
+
+            $("#cancel").on("click", function(){
+                $(".popupForm")[0].reset()
+                $(".popupFormBorder").hide();
+            });
+
+            $("#cancelPublish").on("click", function(){
+                $(".popupForm")[0].reset()
+                $(".popupFormBorder").hide();
+            });
+
+{% endblock %}
+{% block middleContent %}
+
+            <div class="paddingDiv">
+  <div class="tabsContainer">
+		<ul class="topTabs">
+			<li><a data-content="read" class="selected" href="#0">My Documents</a></li>
+		</ul> <!-- cd-tabs-navigation -->
+      <ul class="cd-tabs-content">
+		<li data-content="read" class="selected">
+          <div class="column tabbedContent">
+              <div class="articlePaddingDiv myDocsDiv">
+                  <div class="middleSelection newpub"><a href="#0"><i class="fa fa-plus"></i> New Publication</a></div>
+              </div>
+            </div>
+        </li>
+      </ul>
+</div>
+</div>
+
+        <div class="paddingDiv">
+                  <div id="newPublication" class="popupFormBorder popup">
+                      <form action="{% url 'publish:new_publication' %}" class="popupForm" id="newPubForm" method="post">{% csrf_token %}<h3>Create New Publication</h3>Publication Name
+                          <input name="new_publication_name" type="text">
+                          <input type="submit" id="newpubcreate" value="Create Publication"/> <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div><div id="publishForm" class="popupFormBorder popup">
+            <form action="{% url 'publish:publish_document' %}" class="popupForm" id="newPubForm" method="post">{% csrf_token %}<input type="hidden" name="docHash" class="formDocHash"><h3>Three Ways To Publish</h3><h4>1) Self Publish <i class="fa fa-question-circle" title="Publish this piece under your own name"></i></h4><input type="submit" id="selfPublish" value="Self Publish" name="submissionType"/>
+                          <h4>2) Publish Through Your Own Publication <i class="fa fa-question-circle"  title="Publish this piece through a publication where you have publishing permissions"></i></h4>
+                          Publication Name
+                            <select name="publication_name" class="publication_select">
+                              <option value="----------">----------</option>
+                            </select>
+                          <input type="submit" id="publishThroughPublication" name="submissionType" value="Publish"/>
+                          <h4>3) Submit To A Publication <i class="fa fa-question-circle"  title="Submit this piece to a publication you write for or a publication that accepts submissions. They will decide whether or not to publish it"></i></h4>
+                          Publication Name
+                            <select name="submit_publication_name" class="write_member_select">
+                              <option value="----------">----------</option>
+                            </select>
+                          <input type="submit" id="newpubsumbit" name="submissionType" value="Submit to Publication"/><button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+              </div>
+
+
+{% endblock %}

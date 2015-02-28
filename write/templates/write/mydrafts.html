@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+              $.ajax({
+                       type: "POST",
+                       url: "{% url 'browse:get_latest_revs' %}",
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 50},
+                       dataType: "text",
+                       success: function(response) {
+                           $(response).find("object").each(function() {
+                               title = $(this).find('[name="document_title"]').text();
+                               hash = $(this).find('[name="link_hash"]').text();
+                                isPublishedString = "";
+                                isPublished = $(this).find('[name="has_been_published"]').text();
+                                if (isPublished === "True") {
+                                    isPublishedString = " | Published";
+                                }
+                               editCount = $(this).find('[name="edit_count"]').text();
+                               editorsList = $(this).find('[name="editors_list"]').text();
+                               $('.articlePaddingDiv').append(
+                                    $('<div class="middleSelection">').append(
+                                        $('<a>').attr('href','/write/' + hash).append(title + isPublishedString).append(
+                                            $('<div class="editString">').append(editorsList)
+                                        )
+                                    )
+                               );    
+                           });
+                        },
+                        error: function(rs, e) {
+                               alert(rs.responseText);
+                        }
+                  }); 
+
+{% endblock %}
+{% block middleContent %}
+
+        <div class="paddingDiv">
+          <div class="column">
+              <div class="articlePaddingDiv">
+                  <div class="middleSelection"><a class="newDocButton" href="#"><i class="fa fa-plus"></i> New Document</a></div>
+              </div>
+            </div>
+        </div>
+
+{% endblock %}

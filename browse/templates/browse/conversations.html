@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+function getDateDiff(date1, date2) {
+    var second = 1000,
+    minute = second * 60,
+    hour = minute * 60,
+    day = hour * 24,
+    week = day * 7;
+    date1 = new Date(date1).getTime();
+    date2 = new Date(date2).getTime();
+    var timediff = date2 - date1;
+//    if (isNaN(timediff)) return NaN;
+
+    interval = "minutes";
+    if (timediff <= second) {
+        return "just now";
+    }
+    if (timediff > second) {
+        interval = "seconds";
+    }
+    if (timediff > minute) {
+        interval = "minutes";
+    }
+    if (timediff > hour) {
+        interval = "hours";
+    }
+    if (timediff > day) {
+        interval = "days";
+    }
+    if (timediff > week) {
+        interval = "weeks";
+    }
+
+    switch (interval) {
+    case "years":
+        return date2.getFullYear() - date1.getFullYear();
+    case "months":
+        return ((date2.getFullYear() * 12 + date2.getMonth()) - (date1.getFullYear() * 12 + date1.getMonth()));
+    case "weeks":
+        return Math.floor(timediff / week) + " " + interval + " ago";
+    case "days":
+        return Math.floor(timediff / day) + " " + interval + " ago";
+    case "hours":
+        return Math.floor(timediff / hour) + " " + interval + " ago";
+    case "minutes":
+        return Math.floor(timediff / minute) + " " + interval + " ago";
+    case "seconds":
+        return Math.floor(timediff / second) + " " + interval + " ago";
+    }
+}
+dateNow = new Date()
+$(".sendDate").each(function() {
+date = new Date($(this).attr("data-date"));
+dateString = getDateDiff(date, dateNow);
+$(this).append(dateString);
+});
+
+$(".messageReplyButton").on("click", function() {
+    username = $(this).closest(".message").find(".senderName").first().text();
+    toText = "To: " + username;
+    parentId = $(this).closest(".message").find(".parent").first().val();
+    $(".messageForm").find("h4").text(toText);
+    $(".messageForm").find(".recipient").val(username);
+    $(".messageForm").find(".parent").val(parentId);
+    $("#messageFormBorder").show();
+});
+
+{% endblock %}
+{% block headerContent %}
+{% endblock %}
+
+{% block middleContent %}
+                <div class="paddingDiv">
+<div class="extendingColumn">
+                        <div class="textPaddingDiv">
+                            <a href="{% url 'browse:messages' page=1 %}" class="inboxHeaderLink inboxLink">Inbox</a><a href="{% url 'browse:sent_messages' page=1 %}" class="inboxHeaderLink">Sent</a><a href="#0" class="inboxHeaderLink active">Messages</a>
+        {% for message in original_messages %}
+                <div class="paddingDiv">
+                    <div class="message">
+                        <div class="textPaddingDiv">
+                            <input type="hidden" name="parent" class="parent" value="{{message.id}}">
+                            <h4><a href={% url 'browse:author' name=message.sender.username %} class="senderName">{{ message.sender.username }}</a></h4><span class="sendDate" data-date="{{message.date.isoformat}}"></span>{% if message.sender != user %}<a href="#0" class="messageReplyButton">Reply</a>{% endif %}
+                            <div class="messageContent">
+                                {{message.message_text | safe}}
+                            </div>
+                                {% for reply in full_messages %}
+                            
+                                    {%if reply.original_message == message %}
+                            <div class="message reply">
+                        <div class="textPaddingDiv">
+                            <input type="hidden" name="parent" class="parent" value="{{reply.id}}">
+                            <h4><a href={% url 'browse:author' name=reply.sender.username %} class="senderName">{{ reply.sender.username }}</a></h4><span class="sendDate" data-date="{{reply.date.isoformat}}"></span>{% if reply.sender != user %}<a href="#0" class="messageReplyButton">Reply</a>{% endif %}
+                            <div class="messageContent">
+                                {{reply.message_text | safe}}
+                            </div>
+                                </div>
+                            </div>
+                                    {% endif %}
+                                {% endfor %}
+                        </div>
+                    </div>
+                  
+            
+            <!--div id="messageFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm messageForm" id="messageForm" action="{% url 'browse:send_message' %}" method="post">{% csrf_token %}<h3>New Message</h3><h4>To: {{author.username}}</h4><textarea name="message_content"></textarea>
+                            <input type="hidden" name="recipient" value="{{author.username}}">
+                          <input type="submit" value="Send">
+                    <button type="button" class="cancel">Cancel</button>
+                      </form>
+                  </div-->
+              <!--/div>
+              <div  class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader{{previewCounter}}"><div class="textPaddingDiv"><img class="saveForLater" src="http://placehold.it/30x30"><h2>{{ document.document_title }}</h2><h4>{{ document.user.username }}</h4><div class="articlePreview">{{ document.document_text }}</div></div></div>
+                </div>
+              </div>
+              <div  class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader{{previewCounter}}" style="height:612px"><div class="textPaddingDiv"><img class="saveForLater" src="http://placehold.it/30x30"><h2>{{ document.document_title }}</h2><h4>{{ document.user.username }}</h4><div class="articlePreview">{{ document.document_text }}</div></div></div>
+                </div>
+              </div>
+              <div  class="previewTile{{previewCounter}}">
+                <div class="paddingDiv">
+                    <div class="articleHeader{{previewCounter}}"><div class="textPaddingDiv"><img class="saveForLater" src="http://placehold.it/30x30"><h2>{{ document.document_title }}</h2><h4>{{ document.user.username }}</h4><div class="articlePreview"></div>{{ document.document_text }}</div></div>
+                </div-->
+              </div>
+              {% endfor %}
+    </div>
+    </div>
+</div>
+
+
+            
+            <div id="messageFormBorder" class="popupFormBorder popup">
+                      <form class="popupForm messageForm" id="messageForm" action="{% url 'browse:send_message' %}" method="post">{% csrf_token %}<h3>New Reply</h3><h4></h4><textarea name="message_content"></textarea>
+                            <input type="hidden" name="recipient" class="recipient">
+                            <input type="hidden" name="parent" class="parent">
+                          <input type="submit" value="Send">
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                      </form>
+                  </div>
+
+{% endblock %}
