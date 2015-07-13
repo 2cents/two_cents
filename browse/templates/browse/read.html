@@ -15,31 +15,33 @@ lastRatio = $(document).width()/screen.width;
 prevWindowOffset = 0;
 $( window ).scroll(function() {
 
-    ratio = $(document).width()/screen.width;
-    if (ratio == lastRatio ) {
-        var leftPadding =  parseInt($(".articlePaddingDiv").css("padding-left").replace("px", "")) - 30;
-        bookmarkOffset = $( ".bookmark" ).offset();
-        if ($(window).scrollTop() + $(window).height() < bookmarkOffset["top"] + $( ".bookmark" ).height()  && prevWindowOffset + $(window).height() >=  bookmarkOffset["top"] + $( ".bookmark" ).height()) {
-            $( ".bookmark" ).offset({top: $(window).scrollTop() + $(window).height() - $( ".bookmark" ).height(), left : $("#rightHere").offset()["left"] + leftPadding});
-            prevWindowOffset = $(window).scrollTop();                                            
-        }     
-        if ($(window).scrollTop() >= bookmarkOffset["top"] && prevWindowOffset <= bookmarkOffset["top"]) {
-            $( ".bookmark" ).offset({top: $(window).scrollTop(), left : $("#rightHere").offset()["left"] + leftPadding});
-            prevWindowOffset = $(window).scrollTop();                                            
-        }
-                                                                
-        pOffset = -1;
-        $("#rightHere").find("p").each(function() {
-            var offset = $(this).offset()["top"];
-    //        alert(offset + " " + $( ".bookmark" ).offset()["top"]);
-            if (offset <= $( ".bookmark" ).offset()["top"]) {
-                pOffset = pOffset + 1;
-            } else {
-    //            alert("Chose " + pOffset);
-                gpOffset = pOffset;
-                return false;
+    if($("li[data-content='read']").hasClass("selected")) {
+        ratio = $(document).width()/screen.width;
+        if (ratio == lastRatio ) {
+            var leftPadding =  parseInt($(".articlePaddingDiv").css("padding-left").replace("px", "")) - 30;
+            bookmarkOffset = $( ".bookmark" ).offset();
+            if ($(window).scrollTop() + $(window).height() < bookmarkOffset["top"] + $( ".bookmark" ).height()  && prevWindowOffset + $(window).height() >=  bookmarkOffset["top"] + $( ".bookmark" ).height()) {
+                $( ".bookmark" ).offset({top: $(window).scrollTop() + $(window).height() - $( ".bookmark" ).height(), left : $("#rightHere").offset()["left"] + leftPadding});
+                prevWindowOffset = $(window).scrollTop();                                            
+            }     
+            if ($(window).scrollTop() >= bookmarkOffset["top"] && prevWindowOffset <= bookmarkOffset["top"]) {
+                $( ".bookmark" ).offset({top: $(window).scrollTop(), left : $("#rightHere").offset()["left"] + leftPadding});
+                prevWindowOffset = $(window).scrollTop();                                            
             }
-        });
+
+            pOffset = -1;
+            $("#rightHere").find("p").each(function() {
+                var offset = $(this).offset()["top"];
+        //        alert(offset + " " + $( ".bookmark" ).offset()["top"]);
+                if (offset <= $( ".bookmark" ).offset()["top"]) {
+                    pOffset = pOffset + 1;
+                } else {
+        //            alert("Chose " + pOffset);
+                    gpOffset = pOffset;
+                    return false;
+                }
+            });
+        }
     }
 });
                                                                 
@@ -203,12 +205,29 @@ function addReplyListener(element) {
         parentComment = element.closest(".comment").find(".commentBody").first().attr("id");
         commentId = parentComment.replace("comment", "");
         textarea = $(this).closest(".comment").find("textarea").first();
-        alert(commentId);
         postComment(commentId, textarea);
     });
-    
-    element.closest(".comment").find(".commentVote").first().on("click", function(){
-        parentComment = element.closest(".comment").find(".commentBody").first().attr("id");
+}
+
+function addReplyListeners() {
+    $(".commentReplyButton").unbind();
+    $(".commentReplyButton").on("click", function(){
+        $(".replyForm").hide();
+        $(this).closest(".comment").find(".replyForm").first().show();
+    });
+    $(".addReply").unbind();
+    $(".addReply").on("click", function(){
+        parentComment = $(this).closest(".comment").find(".commentBody").first().attr("id");
+        commentId = parentComment.replace("comment", "");
+        textarea = $(this).closest(".comment").find("textarea").first();
+        postComment(commentId, textarea);
+    });
+}
+
+function addVoteListeners() {
+    $(".commentVote").unbind();
+    $(".commentVote").on("click", function(){
+        parentComment = $(this).closest(".comment").find(".commentBody").first().attr("id");
         commentId = parentComment.replace("comment", "");
         $(this).toggleClass("activeVote");
         addCommentVote(commentId);
@@ -216,7 +235,9 @@ function addReplyListener(element) {
 }
 
 function updateCommentVotes(comment_votes) {
+
     for (var key in comment_votes) {
+//alert(key);
         if(comment_votes[key]) {
             voteId = "#comment" + key + "vote";
             $(voteId).addClass("activeVote");
@@ -224,7 +245,95 @@ function updateCommentVotes(comment_votes) {
     }
 }
 
-function addComment(comments, append) {
+function addReplies(replies, fullReplies) {
+for (var topId in replies) {
+    commentReplies = JSON.parse(replies[topId]);
+    comments = commentReplies["comments"];
+    count = commentReplies['count'];
+    votes = commentReplies["comment_votes"];
+
+    $($(comments).find("object").get().reverse()).each(function() {
+            parentId = "#comment" + $(this).find('[name="parent"]').text();
+            id = "comment" + $(this).attr("pk");
+            text = $(this).find('[name="comment_text"]').text();
+            username = $(this).find('[name="username"]').text();
+            date = new Date($(this).find('[name="date"]').text());
+            now = new Date();
+            diff = getDateDiff(date, now);
+            $(parentId).closest(".comment").find(".replyDiv").first().prepend(
+                $('<div class="comment">').append(
+                    $('<div class="commentHeader" >').append(" &middot; " + diff).prepend(
+                        $('<a class="inReplyTo">').attr("href", parentId).append(" &middot; &#10149;" + $(parentId).attr("data-username")).prepend(
+                            $('<a href=/browse/author/'+ username + '>').append(username)
+                        )
+                    ) 
+                ).append(
+                        $('<div class="commentBody">').attr("id", id).attr("data-username", username).append(text)
+                ).append(
+                        $('<a class="commentReplyButton" href="#0">').append("Reply")
+                ).append(
+                        $('<a class="commentVote" href="#0">').attr("id", id + "vote").append("2&cent;")
+                ).append(
+                        $('<div class="replyForm">').append(
+                            $('<textarea>')
+                        ).append(
+                            $('<input type="button" class="addReply blueButton" value="Comment"/>')
+                        )
+                ).append(
+                    $('<div class="replyDiv">')
+                ).prepend('<hr>')
+
+            );
+    });
+
+    updateCommentVotes(votes);
+
+    if (!fullReplies && count > 2) {
+        $(parentId).closest(".comment").find(".replyDiv").first().prepend(
+            $('<div class="viewReplies">').append("View all " + count + " replies <i class='fa fa-chevron-down'></i>")
+        );
+    }
+}
+
+
+
+$(".viewReplies").on("click", function() {
+    commentId = $(this).closest(".comment").find(".commentBody").attr("id").replace("comment", "");
+    getFullReplies(commentId);
+});
+
+
+}
+
+
+function getFullReplies(commentId) {
+      $.ajax({
+               type: "GET",
+               url: "{% url 'browse:get_full_replies' %}",
+               data: {'comment_id': commentId, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+               dataType: "json",
+               success: function(response) {
+                    parentId = "#comment" + commentId;
+                    $(parentId).closest(".comment").find(".replyDiv").empty();
+                    $(parentId).closest(".comment").find(".replyDiv").hide();
+//                                $("#commentTabHeader").text("Comments (" + response["count"] + ")");
+                    replies= {};
+                    replies[commentId] = JSON.stringify(response);
+                    addReplies(replies, true);
+//                    updateCommentVotes(response["comment_votes"]);
+                    addVoteListeners();
+                    addReplyListeners();
+
+                    $(parentId).closest(".comment").find(".replyDiv").slideToggle();
+                },
+                error: function(rs, e) {
+                       alert(rs.responseText);
+                }
+          });
+}
+
+
+function addComment(comments, append, replies) {
             now = new Date();
            $($(comments).find("object").get().reverse()).each(function() {
                 id = "comment" + $(this).attr("pk");
@@ -235,7 +344,7 @@ function addComment(comments, append) {
                 date = new Date($(this).find('[name="date"]').text());
                 now = new Date();
                 diff = getDateDiff(date, now);
-                if (parent != "0") {
+/*                if (parent != "0") {
                     parentId = "#comment" + parent;
                         $(parentId).closest(".comment").find(".replyDiv").first().prepend(
                             $('<div class="comment">').append(
@@ -261,7 +370,9 @@ function addComment(comments, append) {
                             ).prepend('<hr>')
 
                         );
-                } else if (append) {
+                } else*/
+//                getAddReplies($(this).attr("pk"));
+                if (append) {
                         $(".comments").append(
                             $('<div class="comment">').attr("data-username", username).append(
                                 $('<div class="commentHeader">').append(" &middot; " + diff).prepend(
@@ -308,7 +419,9 @@ function addComment(comments, append) {
 
                         );
                 }
-                addReplyListener($("#" + id).closest(".comment").find(".addReply").first());
+//                addReplyListener($("#" + id).closest(".comment").find(".addReply").first());
+                comment_replies = replies[$(this).attr("pk")];
+//                addReplies(comment_replies["comments"],  $(this).attr("pk"), comment_replies["count"]);
             });
 
 $(".commentReplyButton").on("click", function() {
@@ -323,25 +436,30 @@ $(".commentReplyButton").on("click", function() {
 
             {% if selected_doc.has_comments %}
                 $("#commentTabHeader").on("click", function() {
-                  $.ajax({
-                           type: "GET",
-                           url: "{% url 'browse:get_comments' %}",
-                           data: {'doc_id': {{selected_doc.id}}, 'csrfmiddlewaretoken': '{{csrf_token}}'},
-                           dataType: "json",
-                           success: function(response) {
-//                                $("#commentTabHeader").text("Comments (" + response["count"] + ")");
-                                addComment(response["comments"], 0);
-                                updateCommentVotes(response["comment_votes"]);
-                            },
-                            error: function(rs, e) {
-                                   alert(rs.responseText);
-                            }
-                      });
+                if ($(".comment").length == 0) {
+                      $.ajax({
+                               type: "GET",
+                               url: "{% url 'browse:get_comments' %}",
+                               data: {'doc_id': {{selected_doc.id}}, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                               dataType: "json",
+                               success: function(response) {
+    //                                $("#commentTabHeader").text("Comments (" + response["count"] + ")");
+                                    addComment(response["comments"], 0, response["replies"]);
+                                    addReplies(response["replies"]);
+                                    addReplyListeners();
+                                    addVoteListeners();
+                                    updateCommentVotes(response["comment_votes"]);
+                                },
+                                error: function(rs, e) {
+                                       alert(rs.responseText);
+                                }
+                          });
+                    }
                 });
             {% endif %}
 
 function postComment(parent, textarea){
-                if (parent) {
+                if (parent > 0) {
                   $.ajax({
                            type: "POST",
                            url: "{% url 'browse:add_comment' %}",
@@ -350,7 +468,11 @@ function postComment(parent, textarea){
                            success: function(response) {
                                 textarea.val("");
                                 $(".replyForm").hide();
-                                addComment(response, 0);
+                                replies = {};
+                                replies[parent] = JSON.stringify({"comments": response});
+                                addReplies(replies, 0);
+                                addReplyListeners();
+                                addVoteListeners();
                             },
                             error: function(rs, e) {
                                alert(rs.responseText);
@@ -364,7 +486,9 @@ function postComment(parent, textarea){
                            dataType: "text",
                            success: function(response) {
                                 textarea.val("");
-                                addComment(response, 0);
+                                addComment(response, 0, "{}");
+                                addReplyListeners();
+                                addVoteListeners();
                             },
                             error: function(rs, e) {
                                alert(rs.responseText);
@@ -437,11 +561,7 @@ $(".bookmarked").each(function() {
             <div class="paddingDiv">
   <div class="cd-tabs">
 		<ul class="topTabs">
-			<li><a data-content="read" class="selected" href="#0">Read</a></li>
-            {% if selected_doc.has_comments %}
-			<li><a data-content="comments" href="#0" id="commentTabHeader">Comments</a></li>
-            {% endif %}
-			<li><a data-content="author" href="#0">Author</a></li>
+			<li><a data-content="read" class="selected" href="#0">Read</a></li>{% if selected_doc.has_comments %}<li><a data-content="comments" href="#0" id="commentTabHeader">Comments</a></li>{% endif %}<li><a data-content="author" href="#0">Author</a></li>
 		</ul> <!-- cd-tabs-navigation -->
       <ul class="cd-tabs-content">
 		<li data-content="read" class="selected">
@@ -457,7 +577,7 @@ $(".bookmarked").each(function() {
                     <div class="articlePaddingDiv" id="rightHere" >
                       <form class="commentForm">
                           <textarea form="commentForm" id="commentText" name="comment" placeholder="My two cents..."></textarea>
-                          <input type="button" class="addComment" value="Comment"/>
+                          <input type="button" class="addComment blueButton" value="Comment"/>
                       </form>
                         <div class="comments"></div>
                     </div>
@@ -470,7 +590,7 @@ $(".bookmarked").each(function() {
                     <div class="userHeader tabbedContent">
                         <div>
                             <div class="authorSummary"><div class="textPaddingDiv"><h3>About the author</h3>
-                                {% if author == user %}<a href="#0" class="profileEditLink">Edit</a><a href="#0" class="saveEditLink">Save Changes</a><textarea class="aboutTheAuthor" disabled>{{selected_doc.user.twocentsuser.author_description}}</textarea>{% else %}<br><div style="clear:left">{{selected_doc.user.twocentsuser.author_description}}</div>{% endif %}
+                                <textarea class="aboutTheAuthor" disabled>{{selected_doc.user.twocentsuser.author_description}}</textarea>
                                 </div></div>
                             <div class="authorPlugs"><div class="textPaddingDiv"><h3>My Links</h3>
                                 <ul>
@@ -501,7 +621,7 @@ $(".bookmarked").each(function() {
                 <form class="popupForm tagForm" id="addTagForm">{% csrf_token %}<h3>Tag Document</h3>
                     <h4>Tags</h4>
                     <input class="tagInput" type="text"/>
-                    <button type="button" class="addTagsSubmit">Add Tags</button>
+                    <button type="button" class="addTagsSubmit blueButton">Add Tags</button>
                     <button type="button" class="cancel"><i class="fa fa-times"></i></button>
                 </form>
             </div>

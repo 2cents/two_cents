@@ -73,15 +73,57 @@ $(this).after($('<div class="tag">').append(newTag).append($('<i id="closeTag" c
                       }); 
                 });
 
+              $(".changeSubscriptions").on("click", function(){
+                    var tagString = "";
+                    var removeString = "";
+                    var removeUserString = "";
+                    $(this).closest(".tagForm").find(".tag").each(function() {
+                        var tagName = $(this).text();
+                        tagString = tagString.concat(tagName).concat(":");
+                    });
+                        tagString =  tagString.concat($(".subInput").val()).concat(":");
+                    $(this).closest(".tagForm").find(".pubSub").each(function() {
+                        if (!$(this).prop("checked")) {
+                            var subName = $(this).val();
+                            removeString = removeString.concat(subName).concat(":");
+                        }
+                    });
+                    $(this).closest(".tagForm").find(".userSub").each(function() {
+                        if (!$(this).prop("checked")) {
+                            var subName = $(this).val();
+                            removeUserString = removeUserString.concat(subName).concat(":");
+                        }
+                    });
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'browse:change_subs' %}",
+                           data: {'new_subs': tagString, 'remove': removeString, 'remove_user': removeUserString, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+//                                $("#docId").val(response);
+//                                alert($("#docId").val());
+                                location.reload(); 
+//                                $(".popup").hide();
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      }); 
+                });
+
             $(".followTags").on("click", function() {
                 $("#followTagFormBorder").show();
             });
 
-function renewPreviews(tagName) {
+            $(".manageSubs").on("click", function() {
+                $("#subscriptionFormBorder").show();
+            });
+
+function renewPreviews(tagName, removeTag) {
               $.ajax({
                        type: "POST",
                        url: "{% url 'browse:toggle_tag' %}",
-                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'page' : {{page}}, 'tag' : tagName},
+                       data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'page' : {{page}}, 'tag' : tagName, 'remove' : removeTag},
                        dataType: "html",
                        success: function(response) {
                             $("#middleColumn").empty();
@@ -94,29 +136,47 @@ function renewPreviews(tagName) {
                   }); 
 }
 
+
+        $(".subTag #closeTag").on("click", function() {
+            var tag = $(this).closest(".tag").text();
+            $(this).closest(".tag").remove();
+            renewPreviews(tag, true);
+        });
+
         $(".tag").on("click", function() {
             $(this).toggleClass("active");
-            renewPreviews($(this).text());
+            renewPreviews($(this).text(), false);
         });
 
 
 {% endblock %}
 {% block leftContent %}
+                        {% if user.is_authenticated %}
                     <div class="textPaddingDiv">
                         <div class="leftActions leftSubscriptions">
                         <!--div class="leftAction followTags"><a href="#0">Follow Tags</a></div-->
                         </div>
                     </div>
-<div class="followTags"><a href="#0"><i class="fa fa-plus"></i> More Tags</a></div>
+<div class="followTags"><a href="#0" class="clickable"><i class="fa fa-plus"></i> Manage Tags</a></div>
 <div class="tagBox">
                             {% for tag in user.twocentsuser.tag_follows.all %}
                             {% if tag in user.twocentsuser.active_tags.all %}
-                                <a href="#0" class="tag active">{{tag.text}}</a>
+                                <a href="#0" class="tag active subTag">{{tag.text}}<i id="closeTag" class="fa fa-times"></i></a>
                             {% else %}
-                                <a href="#0" class="tag">{{tag.text}}</a>
+                                <a href="#0" class="tag subTag">{{tag.text}}<i id="closeTag" class="fa fa-times"></i></a>
                             {% endif %}
                             {% endfor %}
 </div>
+<div class="manageSubs"><a href="#0" class="clickable"><i class="fa fa-gear"></i> Subscriptions</a></div>
+<div class="paddingDiv">
+                            {% for author in user.twocentsuser.user_follows.all %}
+                                <a href="{% url 'browse:author' author.username %}" class="subscription">{{author.username}}</a>
+                            {% endfor %}
+                            {% for pub in user.twocentsuser.pub_follows.all %}
+                                <a href="{% url 'browse:publication' pub.publication_name %}" class="subscription">{{pub.publication_name}}</a>
+                            {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
 {% block middleContent %}
 
@@ -178,11 +238,33 @@ function renewPreviews(tagName) {
 {% block headerContent %}
 
             
+<div class="title" name="author_name">TwosPaper</div>
             <div id="followTagFormBorder" class="popupFormBorder popup">
-                <form class="popupForm tagForm" id="followTagForm">{% csrf_token %}<h3>Follow Tags</h3>
+                <form class="popupForm tagForm" id="followTagForm">{% csrf_token %}<h3>Manage Tags</h3>
                     <h4>Tags</h4>
                     <input class="tagInput" type="text"/>
                     <input type="submit" class="followTagsSubmit" value="Follow" action="javascript:void(0);">
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+            <div id="subscriptionFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="subscriptionForm">{% csrf_token %}<h3>Manage Subscriptions</h3>
+                    <h4>New Subscriptions</h4>
+                    <input class="subInput" type="text" onkeydown="if (event.keyCode == 13) return false;" />
+                    <h4>Current Subscriptions</h4>
+                            {% for author in user.twocentsuser.user_follows.all %}
+                    <div>
+                                <input type="checkbox" class="subscriptionCheck userSub" checked value="{{author.username}}">{{author.username}} <span class="greyText">Author</span></input>
+                    </div>
+                            {% endfor %}
+                            {% for pub in user.twocentsuser.pub_follows.all %}
+                    <div>
+                                <input type="checkbox" class="subscriptionCheck pubSub" checked value="{{pub.publication_name}}">{{pub.publication_name}} <span class="greyText">
+                {% if pub.is_open %}Open Publication{% else %}Publication{% endif %}
+                        </span></input>
+                    </div>
+                            {% endfor %}
+                    <input type="submit" class="changeSubscriptions" value="Save Changes" action="javascript:void(0);">
                     <button type="button" class="cancel"><i class="fa fa-times"></i></button>
                 </form>
             </div>

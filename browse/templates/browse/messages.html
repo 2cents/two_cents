@@ -75,6 +75,14 @@ $(".messageReplyButton").on("click", function() {
 <div class="extendingColumn">
                         <div class="textPaddingDiv">
                             <a href="#0" class="inboxHeaderLink inboxLink active">Inbox</a><a href="{% url 'browse:sent_messages' page=1 %}" class="inboxHeaderLink">Sent</a><a href="{% url 'browse:conversations' page=1 %}" class="inboxHeaderLink">Messages</a>
+<div class="paddingDiv">
+    {% if not last_page %}
+<div class="nextPage"><a href="{% url 'browse:messages' page=page|add:"1" %}" >Next <i class="fa fa-angle-right"></i></a></div>
+    {% endif %}
+    {% if page > 1 %}
+    <div class="prevPage"><a href="{% url 'browse:messages' page=page|add:"-1" %}" ><i class="fa fa-angle-left"></i> Previous</a></div>
+    {% endif %}
+                            </div>
         {% for message in messages %}
                 <div class="paddingDiv">
                     <div class="message">

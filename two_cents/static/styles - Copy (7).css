@@ -67,29 +67,8 @@ textarea {
 //    margin-top: 10px;
 }
 
-.leftAction ul{
-    left: 130px;
-    width: 100px;
-    opacity: 0;
-    position: relative;
-    top: -60px;
-    visibility: hidden;
-    min-width: 200px;
-    list-style: none;
-    background: #FFFFFF;
-    border: 1px solid #C9C9C9;
-    border-radius: 3px;
-    font-size: 16px;
-    -webkit-transition: all .25s ease;
-       -moz-transition: all .25s ease;
-        -ms-transition: all .25s ease;
-         -o-transition: all .25s ease;
-            transition: all .25s ease;
-}
-.leftAction:hover ul{
-    left: 140px;
-    visibility: visible;
-    opacity: 1;
+.leftActions ul{
+    display: none;
 }
 
 .leftActions i{
@@ -107,7 +86,7 @@ textarea {
 }
 
 .actionText:hover {
-//    margin-left: -45px;
+    margin-left: -45px;
 }
 
 hr {
@@ -193,22 +172,9 @@ a.inReplyTo{
     text-align: left;
 }
 .dropit .dropit-open .dropit-submenu { display: block; }
-.dropit .dropit-open .dropit-submenu { display: block; }
-
-.leftAction .icon{
-    float: right;
-    color: #C9C9C9;
-    margin-left: 10px;
-}
-
-.leftAction .icon.notification{
-    color: #248fc1;
-}
-
     
-.leftAction ul a {
+.dropit .dropit-submenu a {
     display: block;
-    text-align: left;
     font-size: 16px;
     line-height: 25px;
     color: #7a868e;
@@ -218,33 +184,16 @@ a.inReplyTo{
     -webkit-transition: all .2s ease-in;
     transition: all .2s ease-in;
 }
-.leftAction ul a:hover {
+.dropit .dropit-submenu a:hover {
     background: #248fc1;
     color: #fff;
     text-decoration: none;
 }
-.leftAction .newDocButton {
-    color: #000000;   
-    font-weight: bold;
-}
-.leftAction ul .newDocButton:hover {
-    background: #FFFFFF;
-    text-decoration: none;
-}
 
-
-.newDocButton {
-    color: #000000;   
-    font-weight: bold;
-}
-
-    
-.leftAction ul i {
-    font-size: 20px;
-    margin-left: 0px;
-    margin-top: 2px;
-    margin-right: 5px;
-    float: left;
+.leftAction i{
+    float: right;
+    color: #C9C9C9;
+    margin-left: 10px;
 }
 
 .leftDocument {
@@ -302,22 +251,18 @@ input[type="text"] {
 
 .tagBox {
     padding: 5px;
+    height: 300px;
     overflow-y: auto;   
     text-align: justify;
-    margin-bottom: 10px;
 }
 
 .clickable {
     cursor : pointer;
-//    color: #A9A9A9 !important;
+    color: #A9A9A9 !important;
 }
 
 .clickable:hover {
     color: #248fc1 !important;
-    -moz-transition: all .1s ease-in;
-    -o-transition: all .1s ease-in;
-    -webkit-transition: all .1s ease-in;
-    transition: all .1s ease-in;
 }
 
 .clickable:active {
@@ -327,35 +272,21 @@ input[type="text"] {
 .tagInput {
     width: 795px;
     float: left;
-    margin-bottom: 20px;
-//    margin-top: -15px;
-}
-
-.subInput {
-    width: 795px;
-    float: left;
-    margin-bottom: 20px;
-//    margin-top: -15px;
+    margin-top: -15px;
 }
 
 .followTags {
     text-align: center;
-    font-weight: bold;
 //    margin-left: -20px;   
 }
 
 #closeTag {
     display: inline;
     margin-left: 5px;
-    color: #A9A9A9;
 }
 
 #closeTag:hover {
     color: #F9F9F9;   
-}
-
-.fa-minus-circle, .fa-plus-circle {
-    cursor: pointer;
 }
 
 #maincontainer {
@@ -402,18 +333,6 @@ input[type="text"] {
     min-height: 1000px;
 }
 
-.articlePreview {
-    -moz-transition: all .2s ease-in;
-    -o-transition: all .2s ease-in;
-    -webkit-transition: all .2s ease-in;
-    transition: all .2s ease-in;
-    
-}
-
-.articlePreview:hover {
-    margin-top: -15px;   
-}
-
 .heading {
     font-family: 'Droid Sans';
     font-size: 40px;
@@ -423,18 +342,9 @@ input[type="text"] {
     margin-left: 40px;
 }
 
-.pub_date {
-    color: #A9A9A9;
-    font-family: sans-serif;
-    margin-right: 20px;
-       
-}
-
 level1 {
     font-size: 30px;
 //    color: #A9A9A9;
-//    float: left;
-//    clear: left;
     display: block;
     margin-top: 20px;
     margin-bottom: 10px;
@@ -443,7 +353,7 @@ level1 {
 level1Title {
     font-size: 30px;
 //    color: #A9A9A9;
-//    display: inline-block;
+    display: inline-block;
     margin-top: 20px;
     margin-bottom: 10px;
 }
@@ -570,10 +480,6 @@ level3 {
     font-family: 'Merriweather';
 }
 
-.title:focus {   
-    outline: none;
-}
-
 .change {
     background-color: #FFFFFF;
     border: 1px solid #C9C9C9;
@@ -698,7 +604,6 @@ a.previewLink:visited {
 }
 
 .saveForLater, .bookmark{
-    cursor: pointer;
     color: #E9E9E9;  
 }
 
@@ -776,15 +681,6 @@ a.previewLink:visited {
     border-bottom: 1px solid #E9E9E9;
     font-size: 20px;
     padding: 10px;
-    -moz-transition: all .1s ease-in;
-    -o-transition: all .1s ease-in;
-    -webkit-transition: all .1s ease-in;
-    transition: all .1s ease-in;
-}
-
-.middleSelection:hover {
-    padding-left: 15px;
-    font-weight: bold;
 }
 
 .editString {
@@ -1024,23 +920,6 @@ ul {
 //    margin-bottom: 0px;
 }
 
-.popupForm .docFromFile {
-    width: 40%;
-    padding: 5px;
-    font-size: 16px;
-    color: #F9F9F9;
-    background: #65B0D3;
-    border-radius: 3px;
-    border: 1px solid #C9C9C9;
-    margin: 10px;
-    margin-left: 0px;
-    margin-bottom: 20px;
-    -moz-transition: all .1s ease-in;
-    -o-transition: all .1s ease-in;
-    -webkit-transition: all .1s ease-in;
-    transition: all .1s ease-in;
-}
-
 .popupForm input[type="submit"] {
     width: 49%;
     padding: 5px;
@@ -1066,16 +945,21 @@ button.cancel {
 
 .publishButton {
     float: right;
+    padding: 5px;
+    font-size: 16px;
+    color: #F9F9F9;
+    background: #65B0D3;
+    border-radius: 3px;
+    border: 1px solid #C9C9C9;
+}
+
+.publishButton:hover {
+    color: #F9F9F9;
+    background: #248fc1;
 }
 
 .unlistButton {
     float: right;
-    margin-left: 10px;
-}
-
-.redButton {
-    float: right;
-    cursor: pointer;
     padding: 5px;
     font-size: 16px;
     color: #F9F9F9;
@@ -1085,23 +969,7 @@ button.cancel {
     margin-left: 10px;
 }
 
-.redButton:hover {
-    color: #F9F9F9;
-    background: #cd2626 ;
-}
-
-.rejectButton {
-    float: right;
-    padding: 5px;
-    font-size: 16px;
-    color: #F9F9F9;
-    background: #d75151;
-    border-radius: 3px;
-    border: 1px solid #C9C9C9;
-    margin-left: 10px;
-}
-
-.rejectButton:hover {
+.unlistButton:hover {
     color: #F9F9F9;
     background: #cd2626 ;
 }
@@ -1170,13 +1038,6 @@ input[type="password"] {
     min-height: 40px;
 }
 
-.newSidebar {
-    font-weight: bold;
-}
-
-.newpub {
-    font-weight: bold;
-}
 
 #newPubForm {
     width: 400px;
@@ -1199,69 +1060,12 @@ input[type="password"] {
 
 .tagForm h4{
     margin-top: 20px;
-    margin-bottom: 5px;
 }
 
 .tagForm textarea {
     width: 795px;
     min-height: 400px;
     margin-top: -10px;
-}
-
-.isPublishedDiv {
-    display: inline-block;
-    font-weight: normal;
-    margin-left: 10px;
-    color: #A9A9A9;
-}
-
-.pubList {
-    background: #FFFFFF;
-    border-radius: 3px;
-    max-height: 200px;
-    border: 1px solid #C9C9C9;
-    padding: 5px;
-    position: absolute;
-    visibility: hidden;
-    margin-top: 10px;
-    margin-left: 10px;
-    overflow-y: scroll;
-    opacity: 0;
-    -moz-transition: all .1s ease-in;
-    -o-transition: all .1s ease-in;
-    -webkit-transition: all .1s ease-in;
-    transition: all .1s ease-in;
-}
-
-.pubListItem {
-    display: block;
-    color: #000000;
-}
-
-.isPublishedDiv:hover .pubList {
-    opacity: 1;
-    margin-top: 0px;    
-    visibility: visible;   
-    
-}
-
-#fileDrop {
-    border: 2px dashed #C9C9C9;
-    color: #C9C9C9;
-    height: 20px;
-    padding: 20px;
-    border-radius: 3px;
-    font-size: 16px;
-    text-align: center;
-    margin-top: 20px;
-}
-
-#fileDrop:dragover {
-    background-color: #E9E9E9;   
-}
-
-input[type="file"] {
-    color: #FFFFFF;
 }
 
 #requestEditForm h4{
@@ -1275,17 +1079,12 @@ input[type="file"] {
 
 .publicationHeader {
 //    padding: 20px;
-}
-
-.subArticles {
-    clear: both;   
+    padding-bottom: 200px;
 }
 
 #inviteMemberForm {
     width: 45%;
-    padding-bottom: 50px;
-    float: left;
-    clear: left;
+    border-right: 1px solid #E9E9E9;
 }
 
 .memberPermissionForm {
@@ -1293,7 +1092,7 @@ input[type="file"] {
     margin-left: 20px;
 }
 
-.inviteMemberSubmit {
+#inviteMemberSubmit {
     display: none;
     float: right;
     padding: 5px;
@@ -1318,23 +1117,22 @@ input[type="file"] {
     font-size: 18px;   
 }
 
-.blueButton {
+.addComment {
 //    display: none;
-    cursor: pointer;
     padding: 5px;
     font-size: 16px;
     color: #F9F9F9;
     background: #65B0D3;
     border-radius: 3px;
     border: 1px solid #C9C9C9;
-//    margin-right: 30px;
+    margin-right: 30px;
     -moz-transition: all .1s ease-in;
     -o-transition: all .1s ease-in;
     -webkit-transition: all .1s ease-in;
     transition: all .1s ease-in;
 }
 
-.blueButton:hover {
+.addComment:hover {
     color: #F9F9F9;
     background: #248fc1;
 }
@@ -1507,7 +1305,7 @@ select {
 
 .nextPage a{
     float: right;
-    //display: block;
+    display: block;
     padding: 5px;
     font-size: 18px;
     color: #FFFFFF;
@@ -1519,8 +1317,8 @@ select {
 }
 
 .prevPage a{
-    float: right;
-  //  display: block;
+    float: left;
+    display: block;
     padding: 5px;
     font-size: 18px;
     color: #FFFFFF;
@@ -1531,22 +1329,9 @@ select {
     margin-left: 0px;    
 }
 
-.manageSubs {
-    text-align: center;
-    font-weight: bold;
-}
-
-.subscription {
-    margin-left: 5px;
-    display: block;
-}
-
-.subscriptionCheck {
-    cursor: pointer;
-}
-
-.greyText {
-    color: #A9A9A9;   
+.manageSubscriptions {
+    font-size: 16px;
+    border-bottom: 1px solid #E9E9E9;
 }
 
 .revert {
@@ -1561,33 +1346,6 @@ select {
     font-family: sans-serif;
 }
 
-.editorsDiv {
-    float: left;
-    display: block;
-    clear: right;
-    padding-left: 20px;
-    border-left: 1px solid #E9E9E9;
-}
-
-.editorsDiv ul {
-    overflow-y: scroll;
-    max-height: 200px;    
-}
-
-h5 {
-    margin-top: 10px;
-    margin-bottom: 10px;
-}
-
-.pubLink {
-    float: left;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
-.pubUser {
-    color: #000000;
-}
-
-.pubUser a {
-    margin-right: 20px;   
+.editorsDiv {   
+    font-size: 18px;
 }

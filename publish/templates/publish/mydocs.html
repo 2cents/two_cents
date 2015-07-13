@@ -8,26 +8,38 @@
                        data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 50},
                        dataType: "json",
                        success: function(response) {
-                                console.log(response["docs"]);
-                           $(response["docs"]).find("object").each(function() {
-                               title = $(this).find('[name="document_title"]').text();
-                               id = $(this).attr("pk");
-                               hash = $(this).find('[name="link_hash"]').text();
-                               pubs = $(this).find('[name="publications"]').text();
-                               editorsList = $(this).find('[name="editors_list"]').text();
+                                console.log(response["pubs"]);
+editors = response["editors"];
+                           $(response["docs"]).each(function() {
+                               title = $(this)[0]["document_title"];
+                               id = $(this)[0]["pk"];
+                               hash = $(this)[0]["link_hash"];
+                               pubs = response["pubs"][id];
+//                               editorsList = $(this)[0]["editors_list"];
+                                editorsList = editors[title];
                                 isPublishedString = "";
-                                isPublished = $(this).find('[name="has_been_published"]').text();
+                                isPublishedDiv = "";
+                                isPublished = $(this)[0]["has_been_published"];
                                 href = '/write/';
-                                if (isPublished === "True") {
+                                if (isPublished) {
                                     isPublishedString = " | Published";
+                                    isPublishedDiv = $('<div class="isPublishedDiv">').append(isPublishedString);
+                                    pubList = $('<div class="pubList">');
+                                    for (pub in pubs) {
+                                        pubList.append($('<div class="pubListItem">').append($('<a>').attr("href", "/browse/publication/" + pubs[pub]).append(pubs[pub])));
+                                    }
+                                    if (pubs.length == 0) {
+                                        pubList.append($('<div class="pubListItem">').append("Self Published"));
+                                    }
+                                    isPublishedDiv.append(pubList);
                                     href = '/browse/read/';
                                 }
                                 if (editorsList === "") {
                                    $('.myDocsDiv').append(
                                         $('<div class="middleSelection">').append(
-                                            $('<a>').attr('id', "document" + id).attr('href',href + hash).append(title + isPublishedString)
+                                            $('<a>').attr('id', "document" + id).attr('href',href + hash).append(title).append(isPublishedDiv)
                                         ).append(
-                                            $('<button class="publishButton">').append("Publish")
+                                            $('<button class="myPublishButton publishButton blueButton">').append("Publish")
                                         ).append(
                                             $('<input type="hidden" class="docHash">').attr('value', hash)
                                         )
@@ -68,7 +80,7 @@
                                 });
                             }
 
-                            $(".publishButton").on("click", function(){
+                            $(".myPublishButton").on("click", function(){
                                 $(".formDocHash").val($(this).closest(".middleSelection").find(".docHash").val());
                                 $("#publishForm").find("option").each(function() {
                                     var pub_name = $(this).val();
@@ -76,7 +88,7 @@
                                     $(this).text(pub_name);
                                 });
                                 $("#publishForm").find("select").val("");
-                                $(this).closest(".middleSelection").find(".publishedSpan").each(function() {
+                                $(this).closest(".middleSelection").find(".pubListItem").each(function() {
                                     var pub_name = $(this).text();
                                     $("#publishForm").find('option[value="' + pub_name + '"]').attr('disabled','disabled').append(isPublishedString);
                                 });
@@ -92,112 +104,358 @@
                         }
                   }); 
 
+
             $(".newpub").on("click", function(){
                 $("#newPublication").css("display", "block");
             });
 
+function addPublishedSelection($pubArticles, title, publication_name, link_hash, author, date) {
+
+                                    var $selection = 
+                                        $('<div class="middleSelection">').append(
+                                            $('<div>').append(
+                                                $('<span class="pub_date">').append(date)
+                                            ).append(
+                                                $('<a class="pub_date">').attr("href", "/browse/author/" + author).append(author)
+                                            ).append(
+                                                $('<a>').attr('href','/browse/read/' + link_hash).append(title)
+                                            ).append(
+                                                $('<button class="unlistButton redButton">Unlist</button>')
+                                            ).append(
+                                                $('<input type="hidden" class="docHash">').attr('value', link_hash)
+                                            ).append(
+                                                $('<input type="hidden" class="pubName">').attr('value', publication_name)
+                                            )
+                                        );
+
+                                    $pubArticles.find(".slideContents").prepend($selection);
+//                                    $pubArticles.find("span").remove();
+}
+
+function addSubmittedArticles(publication, publication_name) {
+
+                            pubName = publication_name.replace(/\s/g,"_");
+
+                            var $subArticles = $('<div class="subArticles">').append($('<h5>').append('Submitted Articles <i class="fa fa-minus-circle">')).append('<div class="slideContents">');
+                            $.each(publication["pending_articles"], function(title, hash_date_auth) {
+                                if (title != "") {
+                                    var $selection = 
+                                        $('<div class="middleSelection">').append(
+                                            $('<div>').append(
+                                                $('<span class="pub_date">').append(hash_date_auth[1])
+                                            ).append(
+                                                $('<a class="pub_date">').attr("href", "/browse/author/" + hash_date_auth[2]).append(hash_date_auth[2])
+                                            ).append(
+                                                $('<a>').attr('href','/publish/review/' + hash_date_auth[0]).append(title)
+                                            ).append(
+                                                $('<input type="submit" class="rejectButton redButton" name="submissionType" value="Reject">')
+                                            ).append(
+                                                $('<button class="publishButton blueButton">Publish</button>')
+                                            ).append(
+                                                $('<input type="hidden" class="docHash">').attr('value', hash_date_auth[0])
+                                            ).append(
+                                                $('<input type="hidden" class="pubName">').attr('value', publication_name)
+                                            )
+                                        );
+
+                                   $subArticles.find(".slideContents").append($selection);
+
+
+                                    $selection.find(".publishButton").on("click", function() {
+                                      $.ajax({
+                                               type: "POST",
+                                               url: "{% url 'publish:publish_document' %}",
+                                               data: {'submissionType': "Publish", 'publication_name': publication_name, 'docHash': hash_date_auth[0], 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                                               dataType: "text",
+                                               success: function(response) {
+                                                    $selection.remove();
+                                                    
+                                                    var $pubArticles = $("[data-content=" + '"' + publication_name + '"' + "]").find(".pubArticles");
+                                                    addPublishedSelection($pubArticles, title, publication_name, response, hash_date_auth[2], hash_date_auth[1]);
+                                                    addUnlistListeners();
+    
+                                                    if ($subArticles.find(".middleSelection").size() == 0) {
+                                                        $("#" + pubName).find("i").remove();
+                                                        $subArticles.find(".slideContents").append("<span>No pending articles</span>");
+                                                    }
+                                                },
+                                                error: function(rs, e) {
+                                                       alert(rs.responseText);
+                                                }
+                                          });
+                                    });
+
+
+                                }
+                            });
+                            if ($subArticles.find(".middleSelection").size() == 0) {
+                                $("#" + pubName).find("i").remove();
+                                $subArticles.find(".slideContents").append("<span>No pending articles</span>");
+                            }
+                            $subArticles.find("i").on("click", function(){
+                                $subArticles.find(".slideContents").slideToggle(200);
+                                $(this).toggleClass("fa-plus-circle");
+                                $(this).toggleClass("fa-minus-circle");
+                            });
+                        $("[data-content=" + '"' + publication_name + '"' + "]").find(".articlePaddingDiv").append($subArticles);
+}
+
+function addPublishedArticles(publication, publication_name) {
+
+                            pubName = publication_name.replace(/\s/g,"_");
+
+                            var $pubArticles = $('<div class="pubArticles">').append($('<h5>').append('Published Articles <i class="fa fa-minus-circle">')).append('<div class="slideContents">');
+
+                            $.each(publication["published_articles"], function(title, hash_date_auth) {
+                                if (title != "") {
+                                    var $selection = 
+                                        $('<div class="middleSelection">').append(
+                                            $('<div>').append(
+                                                $('<span class="pub_date">').append(hash_date_auth[1])
+                                            ).append(
+                                                $('<a class="pub_date">').attr("href", "/browse/author/" + hash_date_auth[2]).append(hash_date_auth[2])
+                                            ).append(
+                                                $('<a>').attr('href','/browse/read/' + hash_date_auth[0]).append(title)
+                                            ).append(
+                                                $('<button class="unlistButton redButton">Unlist</button>')
+                                            ).append(
+                                                $('<input type="hidden" class="docHash">').attr('value', hash_date_auth[0])
+                                            ).append(
+                                                $('<input type="hidden" class="pubName">').attr('value', publication_name)
+                                            )
+                                        );
+
+                                   $pubArticles.find(".slideContents").append($selection);
+
+
+/*                                    $selection.find(".unlistButton").on("click", function() {
+                                      $.ajax({
+                                               type: "POST",
+                                               url: "{% url 'publish:publish_document' %}",
+                                               data: {'submissionType': "Unlist", 'publication_name': publication_name, 'docHash': link_hash, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                                               dataType: "text",
+                                               success: function(response) {
+                                                $selection.remove();
+                                                    if ($pubArticles.find(".middleSelection").size() == 0) {
+                                                    $pubArticles.find(".slideContents").append("<span>No published articles</span>");
+                                                    }
+                                                },
+                                                error: function(rs, e) {
+                                                       alert(rs.responseText);
+                                                }
+                                          });
+                                    });*/
+
+
+
+                                }
+                            });
+                            if ($pubArticles.find(".middleSelection").size() == 0) {
+                                $pubArticles.find(".slideContents").append("<span>No published articles</span>");
+                            }
+                            $pubArticles.find("i").on("click", function(){
+                                $pubArticles.find(".slideContents").slideToggle(200);
+                                $(this).toggleClass("fa-plus-circle");
+                                $(this).toggleClass("fa-minus-circle");
+                            });
+                        $("[data-content=" + '"' + publication_name + '"' + "]").find(".articlePaddingDiv").append($pubArticles);
+}
+
+function getAddPubArticles(publication_name) {
+
+                                if ($("[data-content=" + '"' + publication_name + '"' + "]").find(".pubArticles").length == 0) {
+                                      $.ajax({
+                                               type: "GET",
+                                               url: "{% url 'publish:get_latest_pubs' %}",
+                                               data: {'publication_name': publication_name, 'page': '1', 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                                               dataType: "json",
+                                               success: function(response) {
+                                                    addPublishedArticles(response, publication_name);
+                                                    addUnlistListeners();
+
+                                //                                $("#commentTabHeader").text("Comments (" + response["count"] + ")");
+                                                },
+                                                error: function(rs, e) {
+                                                       alert(rs.responseText);
+                                                }
+                                          });
+                                    }
+}
+
+function addUnlistListeners() {
+$(".unlistButton").unbind();
+        $(".unlistButton").on("click", function(){
+            $(".formDocHash").val($(this).closest(".middleSelection").find(".docHash").val());
+            $(".formPubName").val($(this).closest(".middleSelection").find(".pubName").val());
+            $("#unlistFormBorder").show();
+        });
+
+$(".rejectButton").unbind();
+        $(".rejectButton").on("click", function(){
+            $(".formDocHash").val($(this).closest(".middleSelection").find(".docHash").val());
+            $(".formPubName").val($(this).closest(".middleSelection").find(".pubName").val());
+            $("#rejectFormBorder").show();
+        });
+
+
+$(".unlist").unbind();
+        $(".unlist").on("click", function() {
+            hash = $(this).closest("form").find(".formDocHash").val();
+            $pubArticles = $('.docHash[value="' + hash + '"]').closest(".pubArticles");
+          $.ajax({
+                   type: "POST",
+                   url: "{% url 'publish:publish_document_to_publication' %}",
+                   data: {'submissionType': "Unlist", 'docHash': hash, 'publication_name': $(this).closest("form").find(".formPubName").val(), 'comment' : $("#unlistComment").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                   dataType: "text",
+                   success: function(response) {
+                        $("#unlistFormBorder").hide();
+                        $("#unlistComment").val("");
+                        $('.docHash[value="' + hash + '"]').closest(".middleSelection").remove();
+                        if ($pubArticles.find(".middleSelection").size() == 0) {
+                            $pubArticles.find(".slideContents").append("<span>No published articles</span>");
+                        }
+                    },
+                    error: function(rs, e) {
+                           alert(rs.responseText);
+                    }
+              });
+        });
+
+
+
+$(".reject").unbind();
+        $(".reject").on("click", function() {
+            hash = $(this).closest("form").find(".formDocHash").val();
+            $subArticles = $('.docHash[value="' + hash + '"]').closest(".subArticles");
+          $.ajax({
+                   type: "POST",
+                   url: "{% url 'publish:publish_document_to_publication' %}",
+                   data: {'submissionType': "Reject", 'docHash': hash, 'publication_name': $(this).closest("form").find(".formPubName").val(), 'comment' : $("#rejectComment").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                   dataType: "text",
+                   success: function(response) {
+                        $("#rejectFormBorder").hide();
+                        $("#rejectComment").val("");
+                        $('.docHash[value="' + hash + '"]').closest(".middleSelection").remove();
+                        if ($subArticles.find(".middleSelection").size() == 0) {
+                            $subArticles.find(".slideContents").append("<span>No pending articles</span>");
+                        }
+                    },
+                    error: function(rs, e) {
+                           alert(rs.responseText);
+                    }
+              });
+        });
+
+}
+
 function addPublicationTab(publication) {
                             var publication_name = publication["publication_name"];
                             var id = publication["id"];
-                            $(".topTabs").append(
-                                $('<li>').append(
-                                    $('<a href="#0">').attr("data-content", publication_name).append(publication_name)
-                                )
-                            );
+    
+                            name = publication_name.replace(/\s/g,"_");
 
+                            if (publication["article_count"] > 0) {
 
-                            var $memberPermissionForm = $('<form class="memberPermissionForm" action="/publish/change_permissions/" method="post">').attr("id",  "memberPermissionForm" + id).append("<h5>Member Permissions</h5>").append("{% csrf_token %}").append($('<input type="hidden" name="publication_name">').attr("value", publication_name));
-
-                            var $memberSelect = $('<select name="memberPermissionSelect" style="float:left; margin-bottom:30px;"></select>').attr("id",  "#memberPermissionForm" + id);
-                            $.each(publication["editors"], function(name, role) {
-                               $memberSelect.append($('<option>').attr("value", name).attr("data-role", role).append(name));
-                            });
-
-                            $memberPermissionForm.append($memberSelect);
-                            var $editPermission = $('<div style="display:none" style="float:left">').append("<span>Can Edit/Publish Submissions</span>").append($('<input type="checkbox" name="canEdit" value="canEdit" >')).append($('<input type="submit" id="permissionSubmit" name="submissionType" value="Save Permission Changes" style="display:none; float:right">')).append($('<input type="submit" id="removeMember" name="submissionType" value="Remove Member" style="float:right">'));
-                            $memberPermissionForm.append($editPermission);
-
-                            $editPermission.find("input").on("change", function() {
-                                $editPermission.find("#permissionSubmit").toggle();
-                            });
-
-                            $memberSelect.on("change", function() {
-                                if ($(this).val() === ""){
-                                    $editPermission.hide();
-                                } else {
-                                    $editPermission.find("#permissionSubmit").hide();
-                                    var role = $('option:selected', this).attr("data-role");
-                                    if (role === "editor") {
-                                        $editPermission.find("input").prop("checked", true);
-                                    } else {
-                                        $editPermission.find("input").prop("checked", false);
-                                    }
-                                    $editPermission.show();
-                                }
-                            });
-
-                            var $inviteMemberInput = $('<input type="text" name="username">');
-
-                            var $inviteMemberSubmit = $('<input type="submit" id="inviteMemberSubmit" value="Invite Member">');
-
-
-                            $inviteMemberInput.on("keyup", function() {
-                                if ($(this).val() === ""){
-                                    $inviteMemberSubmit.hide();
-                                } else {
-                                    $inviteMemberSubmit.show();
-                                }
-                            });
-
-                            var $subArticles = $('<div class="pubArticles">').append($('<h4>').append("Submitted Articles"));
-
-                            $.each(publication["pending_articles"], function(title, link_hash) {
-                                if (title != "") {
-                                   $subArticles.append(
-                                        $('<form action="{% url 'publish:publish_document' %}" method="post">').append("{%csrf_token%}").append(
-                                            $('<a>').attr('href','/browse/read/' + link_hash).append(title)
-                                        ).append(
-                                            $('<input type="submit" name="submissionType" value="Publish">')
-                                        ).append(
-                                            $('<input type="hidden" name="docHash">').attr('value', link_hash)
-                                        ).append(
-                                            $('<input type="hidden" name="publication_name">').attr('value', publication_name)
+                                    $("#myDocsTab").after(
+                                        $('<li>').append(
+                                            $('<a href="#0">').attr("id", name).attr("data-content", publication_name).append(publication_name)
                                         )
                                     );
+                                    $("#" + name).prepend($('<i class="fa fa-exclamation pubNotification">'));
+                            } else {
+                                $(".topTabs").append(
+                                    $('<li>').append(
+                                        $('<a href="#0">').attr("id", name).attr("data-content", publication_name).append(publication_name)
+                                    )
+                                );
+                            }
+
+                            var $tab = $('<div class="extendingColumn tabbedContent">').append(
+                                            $('<div class="articlePaddingDiv">').append(
+                                                $('<a class="pubLink" href="/browse/publication/' + publication_name + '">').append("Front Page")
+                                            )
+                                        );
+
+                            if (publication["is_owner"]) {
+
+
+                                    var $inviteMemberInput = $('<input type="text" name="username" class="inviteMemberInput">');
+
+                                    var $inviteMemberSubmit = $('<input type="submit" class="inviteMemberSubmit blueButton" value="Invite Member">');
+
+
+                                    $inviteMemberInput.on("keyup", function() {
+                                        if ($(this).val() === ""){
+                                            $inviteMemberSubmit.hide();
+                                        } else {
+                                            $inviteMemberSubmit.show();
+                                        }
+                                    });
+
+                                    $tab.find(".articlePaddingDiv").append(
+                                            $('<form id="inviteMemberForm" action="javascript:void(0);" method="post">').append("{%csrf_token%}").append(
+                                                "<h5>Invite Member</h5>"
+                                            ).append($inviteMemberInput).append($('<input type="hidden" name="publication_name">').attr("value", publication_name)).append($inviteMemberSubmit)
+                                        );
+
+                                    $tab.find(".articlePaddingDiv").append(
+                                        $('<div class="editorsDiv">').append($('<h5>').append("Members")).append($('<ul>'))
+                                    );
+                            }
+
+                            for (key in publication["editors"]) {
+                                if (key.length > 0) {
+                                    $tab.find(".editorsDiv ul").append($('<div class="pubUser">').append($('<a>').attr("href", "/browse/author/" + key).append(key)).append($('<span class="greyText">').append(publication["editors"][key])));                                    
                                 }
-                            });
-
-
-
-                            var $managePub =  $('<a href="#0">Manage Publication <i class="fa fa-plus-circle"></i></a>')
-                            $managePub.on("click", function(){
-                                $(this).closest(".articlePaddingDiv").find(".publicationHeader").toggle();
-                                $(this).find("i").toggleClass("fa-plus-circle");
-                                $(this).find("i").toggleClass("fa-minus-circle");
-                            });
+                            }
 
                             $(".cd-tabs-content").append(
-                                $('<li>').attr("data-content", publication_name).append(
-                                    $('<div class="extendingColumn tabbedContent">').append(
-                                        $('<div class="articlePaddingDiv">').append(
-                                            $('<h4>').append($managePub)
-                                        ).append(
-                                            $('<div class="publicationHeader" style="display:none">').append(
-                                                $('<form id="inviteMemberForm" style="padding-bottom:50px" action="/publish/invite_member/" method="post">').append("{%csrf_token%}").append(
-                                                    "<h5>Invite Member</h5>"
-                                                ).append($inviteMemberInput).append($('<input type="hidden" name="publication_name">').attr("value", publication_name)).append($inviteMemberSubmit)
-                                            ).append($memberPermissionForm)
-                                        ).append(
-                                            $('<hr style="clear:both;margin:0px">')
-                                        ).append($subArticles)
-                                    )
-                                )
+                                $('<li>').attr("data-content", publication_name).append($tab)
                             );
                             $(".publication_select").append(
                                 $('<option>').attr("value", publication_name).append(publication_name)
                             );
                             addTabListeners();
+
+
+    
+            $(".inviteMemberSubmit").on("click", function() {
+var tab = $(this).closest(".tabbedContent");
+            var member = $(this).closest("form").find(".inviteMemberInput").val();
+          $.ajax({
+                   type: "POST",
+                   url: "{% url 'publish:invite_member' %}",
+                   data: {'username': member, 'publication_name': $(this).closest("form").find("input[name=publication_name]").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                   dataType: "text",
+                   success: function(response) {
+                        tab.find(".editorsDiv ul").append($('<div class="pubUser">').append($('<a>').attr("href", "/browse/author/" + member).append(member)).append($('<span class="greyText">').append("writer"))); 
+                    },
+                    error: function(rs, e) {
+                           alert(rs.responseText);
+                    }
+              });
+        });
+
+                            $("#" + name).on("click", function() {
+                                if ($("[data-content=" + '"' + publication_name + '"' + "]").find(".subArticles").length == 0) {
+                                      $.ajax({
+                                               type: "GET",
+                                               url: "{% url 'publish:get_latest_submissions' %}",
+                                               data: {'publication_name': publication_name, 'page': '1', 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                                               dataType: "json",
+                                               success: function(response) {
+                                                    addSubmittedArticles(response, publication_name);
+                                                    getAddPubArticles(publication_name);
+                                //                                $("#commentTabHeader").text("Comments (" + response["count"] + ")");
+                                                },
+                                                error: function(rs, e) {
+                                                       alert(rs.responseText);
+                                                }
+                                          });
+                                    }
+                            });
 }
+
 
          /*   $("#newpubcreate").on("click", function(){
 
@@ -227,7 +485,17 @@ alert($("input[name=new_publication_name]").val());
             pub_editors = { "":"", {% for writer in publication.writers.all %}"{{writer.username}}":"writer", {%  endfor %}{% for editor in publication.editors.all %}"{{editor.username}}":"editor", {%  endfor %}"":""};
             pending_articles = { "":"", {% for article in publication.pendingArticles.all %}"{{article.document_title}}":"{{article.link_hash}}", {%  endfor %}"":""};
             pub["editors"] = pub_editors;
+            pub["article_count"] = {{ publication.pendingArticles.all | length }};
             pub["pending_articles"] = pending_articles;
+            {% if publication.owner == user %}
+            pub["is_owner"] = true;
+            {% endif %}
+            {% if publication.accepts_articles %}
+            pub["pub_type"] = "open_submission";
+            {% endif %}
+            {% if publication.is_open %}
+            pub["pub_type"] = "open_publication";
+            {% endif %}
             addPublicationTab(pub);
         {% endfor %}
 
@@ -247,19 +515,19 @@ alert($("input[name=new_publication_name]").val());
                 $(".popupFormBorder").hide();
             });
 
+$(window.location.hash).trigger("click");
+
 {% endblock %}
 {% block middleContent %}
 
             <div class="paddingDiv">
   <div class="tabsContainer">
-		<ul class="topTabs">
-			<li><a data-content="read" class="selected" href="#0">My Documents</a></li>
-		</ul> <!-- cd-tabs-navigation -->
+		<ul class="topTabs"><li><a data-content="read" id="myDocsTab" class="selected" href="#0">My Documents</a></li></ul> <!-- cd-tabs-navigation -->
       <ul class="cd-tabs-content">
 		<li data-content="read" class="selected">
           <div class="column tabbedContent">
               <div class="articlePaddingDiv myDocsDiv">
-                  <div class="middleSelection newpub"><a href="#0"><i class="fa fa-plus"></i> New Publication</a></div>
+                  <div class="middleSelection newpub"><a href="#0" class="clickable"><i class="fa fa-plus"></i> New Publication</a></div>
               </div>
             </div>
         </li>
@@ -290,6 +558,28 @@ alert($("input[name=new_publication_name]").val());
                       </form>
                   </div>
               </div>
+
+
+            
+            <div id="unlistFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="unlistForm" action="javascript:void(0);"><h3>Unlist</h3>
+                    <br><h4 style="clear:left">Comment</h4><textarea name="comment" id="unlistComment"></textarea>
+                    <input type="hidden" name="docHash" class="formDocHash">
+                    <input type="hidden" name="publication_name" class="formPubName">
+                    <button class="unlist redButton">Unlist</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+            
+            <div id="rejectFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="rejectForm" action="javascript:void(0);"><h3>Unlist</h3>
+                    <br><h4 style="clear:left">Comment</h4><textarea name="comment" id="rejectComment"></textarea>
+                    <input type="hidden" name="docHash" class="formDocHash">
+                    <input type="hidden" name="publication_name" class="formPubName">
+                    <button class="reject redButton">Reject</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
 
 
 {% endblock %}

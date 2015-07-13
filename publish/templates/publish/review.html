@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block onReady %}
+
+function addCitations(citationList) {
+
+    $(citationList).find("object").each(function() {
+        author = $(this).find('[name="authors"]').text().split(",");
+        authorArray = author[0].split(" ");
+        formattedAuthor = authorArray[authorArray.length - 1] + ", " + authorArray.slice(0, -1).join(" ");
+        if (author.length > 1) {
+            formattedAuthors = formattedAuthor + author.slice(1, -1).join(", ") + ", and " + author[author.length - 1];
+        } else {
+            formattedAuthors = formattedAuthor;
+        }
+        if (formattedAuthors[formattedAuthors.length -1] != ".") {
+            formattedAuthors = formattedAuthors + ". "
+        } else {
+            formattedAuthors = formattedAuthors + " "
+        }
+        var citation = $('<div class="citation">');
+        citation.append(formattedAuthors);
+        citation.append($('<i>').append($(this).find('[name="title"]').text() + ". "));
+        citation.append($(this).find('[name="publisher"]').text() + ", ");
+        date = new Date($(this).find('[name="pub_date"]').text());
+        citation.append(date.getFullYear() + ". Print.");
+        $("#bibContent").append(citation);
+    });
+
+}
+
+                  $.ajax({
+                           type: "GET",
+                           url: "{% url 'write:get_sources' %}",
+                           data: {'doc_id': {{selected_doc.id}}, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "text",
+                           success: function(response) {
+                                addCitations(response);
+                            },
+                            error: function(rs, e) {
+                                   alert(rs.responseText);
+                            }
+                      });  
+
+
+{% endblock %}
+{% block headerContent %}
+
+<form action="{% url 'publish:publish_document' %}" method="post" id="publishForm">
+    {% csrf_token %}
+                <input class="title" type="text" name="doc_title" value="{{selected_doc.document_title}}"/>
+                <input id="docId" type="hidden" value="{{selected_doc.id}}"/>
+</form>
+
+{% endblock %}
+
+{% block middleContent %}
+        <div class="paddingDiv">
+            
+            
+  <div class="tabsContainer">
+      <nav>
+		<ul class="topTabs">
+			<li><a data-content="read" class="selected" href="#0">Read</a></li>
+			<li><a data-content="bibliography" href="#0">Bibliography</a></li>
+		</ul> <!-- cd-tabs-navigation -->
+      </nav>
+      <ul class="cd-tabs-content">
+		<li data-content="write" class="selected">
+            <div class="extendingColumn tabbedContent"><div class="articlePaddingDiv"><div id="textbody" class="textbody"x>{{selected_doc.latest_id.document_text | safe}}</div></div></div>
+            
+        </li>
+		<li data-content="bibliography">
+                <div class="extendingColumn tabbedContent">
+            
+                    <div class="articlePaddingDiv" id="bibContent" ></a></div>
+                </div>
+            
+        </li>
+      </ul>
+</div>
+</div>
+
+<div id="autoSave">Auto Saved</div>
+
+{% endblock %}
+{% block leftContent %}
+
+                    <div class="textPaddingDiv">
+                        <div class="leftActions">
+                            <div class="publishToPub leftAction"><a href="#" class="actionText">Publish</a></div>
+                        </div>
+                    </div>
+{% endblock %}
