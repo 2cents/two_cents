@@ -22,7 +22,7 @@
       $.ajax({
                type: "POST",
                url: "{% url 'browse:save_author_desc' %}",
-               data: {'desc': $(".aboutTheAuthor").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+               data: {'desc': $(".aboutTheAuthor").text(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
                dataType: "text",
                success: function(response) {
                     $(".aboutTheAuthor").val(response);
@@ -187,7 +187,7 @@ $(".addLink").on("click", function() {
     <div class="column">
         <div class="textPaddingDiv">
             <b>About the Author</b>{% if user == author %}<a href="#0" class="profileEditLink">Edit</a>{% endif %}<br>
-            <div class="aboutTheAuthor">{{user.author_description | safe}}</div>{% if user == author %}<a href="#0" class="saveEditLink">Save Changes</a>{% endif %}
+            <div class="aboutTheAuthor">{{author.twocentsuser.author_description | safe}}</div>{% if user == author %}<a href="#0" class="saveEditLink">Save Changes</a>{% endif %}
         </div>
     </div>
 </div>
