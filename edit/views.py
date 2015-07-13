@@ -11,6 +11,7 @@ from django.contrib.auth import authenticate, login, logout, get_user
 
 from browse.models import Document, EditRequest, Publication
 from django.contrib.auth.models import User
+from browse import views
 # Create your views here.
 
 def myedits(request):
