@@ -23,6 +23,12 @@ from django.core import serializers
 
 # Create your views here.
 
+def auth_redirect(user):
+    if not user.is_authenticated():
+        return browse_page(request, 1)
+    else:
+        pass
+
 def article_preview_context(request, page):
     u = get_user(request)
     if (u.is_authenticated()):
@@ -112,6 +118,8 @@ def author(request, name):
         is_subscribed = True
             
     context = {'bookmark_list': bookmark_list, 'latest_document_list': latest_document_list, 'doc_votes': vote_dict, 'bookmarks': bookmark_dict, 'author' : profile_user, 'publications' : json_serializer.serialize(publication_list, fields="publication_name"), 'subscribed' : is_subscribed}
+    form = UserCreationForm()
+    context['form'] = form
     return render(request, 'browse/author.html', context)
 
 def save_author_desc(request):
@@ -153,6 +161,8 @@ def publication(request, name):
             vote_dict[str(d.id)] = False
             
     context = {'latest_document_list': latest_document_list, 'doc_votes': json.dumps(vote_dict), 'publication':pub, 'subscribed' : is_subscribed}
+    form = UserCreationForm()
+    context['form'] = form
     return render(request, 'browse/publication.html', context)
     
 def read(request, hash_id):
@@ -165,6 +175,8 @@ def read(request, hash_id):
     except:
         doc = PublishedDocument.objects.get(link_hash=hash_id)
     context = {'selected_doc': doc, 'bookmark' : get_bookmark_offset(request, doc)}
+    form = UserCreationForm()
+    context['form'] = form
     return render(request, 'browse/read.html', context)
 
 def get_latest_bookmarks(request):

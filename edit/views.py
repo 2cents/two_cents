@@ -15,6 +15,7 @@ from django.contrib.auth.models import User
 
 def myedits(request):
     u = get_user(request)
+    views.auth_redirect(u)
     publication_list = Publication.objects.filter(editors=u)
     context = {'publication_list' : publication_list}
     return render(request, 'edit/myedits.html', context)
