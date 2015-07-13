@@ -9,17 +9,17 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 class Document(models.Model):
-    document_text = models.CharField(max_length=10000, blank=True, default = None)
+#    document_text = models.CharField(max_length=10000, blank=True, default = None)
     document_title = models.CharField(max_length=200)
-    document_version = models.IntegerField(default=0)
-    original_id = models.ForeignKey('self', related_name="orig_id", default=0)
-    latest_id = models.ForeignKey('self', default=0)
+#    document_version = models.IntegerField(default=0)
+#    original_id = models.ForeignKey('self', related_name="orig_id", default=0)
+    latest_id = models.ForeignKey('DocumentDraft', related_name="latest_id", default=0)
     user = models.ForeignKey(User)
-    editor = models.ForeignKey(User, related_name="document_editor", default=0)
-    is_edit = models.BooleanField(default = False)
-    is_latest = models.BooleanField(default = False)
+#    editor = models.ForeignKey(User, related_name="document_editor", default=0)
+#    is_edit = models.BooleanField(default = False)
+#    is_latest = models.BooleanField(default = False)
     is_published = models.BooleanField(default = False)
-    edit_count = models.IntegerField(default=0)
+#    edit_count = models.IntegerField(default=0)
     editors_list = models.CharField(max_length=200, default="")
     save_date = models.DateTimeField('date saved', default=datetime.now)
     pub_date = models.DateTimeField('date published', null=True)
@@ -27,10 +27,11 @@ class Document(models.Model):
     has_been_published = models.BooleanField(default = False)
     has_comments = models.BooleanField(default = False)
 
-    def save(self, *args, **kwargs):    
-        hashstr = self.document_text + self.document_title + str(self.save_date)
-        hashstr_utf = hashstr.encode('utf-8')
-        self.link_hash = sha1(hashstr_utf).hexdigest()
+    def save(self, *args, **kwargs):
+        if self.link_hash=="":
+            hashstr = self.document_title + str(self.save_date)
+            hashstr_utf = hashstr.encode('utf-8')
+            self.link_hash = sha1(hashstr_utf).hexdigest()
         super(Document, self).save(*args, **kwargs)
             
     
@@ -51,6 +52,17 @@ class Document(models.Model):
     was_published_recently.boolean = True
     was_published_recently.short_description = 'Published recently?'
     
+class DocumentDraft(models.Model):
+    document_text = models.CharField(max_length=10000, blank=True, default = None)
+    document_version = models.IntegerField(default=0)
+    document = models.ForeignKey(Document)
+    editor = models.ForeignKey(User, related_name="document_editor", default=0)
+    is_edit = models.BooleanField(default = False)
+    is_latest = models.BooleanField(default = False)
+    edit_count = models.IntegerField(default=0)
+    editors_list = models.CharField(max_length=200, default="")
+    save_date = models.DateTimeField('date saved', default=datetime.now)
+
 class Tag(models.Model):
     text = models.CharField(max_length=30, blank=False)
 
@@ -128,8 +140,25 @@ class Publication(models.Model):
     articles = models.ManyToManyField(PublishedDocument)
     pendingArticles = models.ManyToManyField(Document)
     accepts_articles = models.BooleanField(default = False)
+    is_open = models.BooleanField(default = False)
+    description = models.CharField(max_length=1000, blank=True)
     publication_name = models.CharField(max_length=200, default="default")
     last_pub_date = models.DateTimeField('pub_date', null=True)
+
+class PublicationDate(models.Model):
+    article = models.ForeignKey(PublishedDocument)
+    publication = models.ForeignKey(Publication)
+    date = models.DateTimeField(default=datetime.now)
+
+class SubmissionDate(models.Model):
+    article = models.ForeignKey(Document)
+    publication = models.ForeignKey(Publication)
+    date = models.DateTimeField(default=datetime.now)
+
+class Sidebar(models.Model):
+    publication = models.ForeignKey(Publication)
+    title = models.CharField(max_length=60, blank=True)
+    content = models.CharField(max_length=1000, blank=True)
 
 class EditRequest(models.Model):
     writer = models.ForeignKey(User)
@@ -160,6 +189,7 @@ class Comment(models.Model):
     date = models.DateTimeField('date', default=datetime.now)
     comment_text = models.CharField(max_length=1000, blank=False)
     parent = models.ForeignKey('self', default=0)
+    top_comment = models.ForeignKey('self', related_name="topmost_comment", default=0)
     votes = models.IntegerField(default=1)
         
     def inc_votes(self):

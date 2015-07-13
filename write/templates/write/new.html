@@ -1,6 +1,278 @@
 {% extends "base.html" %}
+{% block head %}
+{% load staticfiles%}
+<script type="text/javascript" src="{% static 'rangy-core.js' %}"></script>
+<script type="text/javascript" src="{% static 'rangy-classapplier.js' %}"></script>
+<script type="text/javascript" src="{% static 'undo.js' %}"></script>
+<script type="text/javascript" src="{% static 'medium.js' %}"></script>
+{% endblock %}
 {% block onReady %}
 
+function toggleOutline() {
+    $("level1, level2, level3").toggle();
+}
+
+
+function moveLevelOut(el) {
+    var parentLevel = el.parent();
+    el.detach();
+    parentLevel.after(el);
+}
+
+function unpackLevels() {
+
+
+    $("level1 level1").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level1 level2").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level1 level3").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level2 level1").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level2 level2").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level2 level3").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level3 level1").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level3 level2").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level3 level3").each(function() {
+        moveLevelOut($(this));
+    });
+    $("span level1").each(function() {
+        moveLevelOut($(this));
+    });
+    $("span level2").each(function() {
+        moveLevelOut($(this));
+    });
+    $("span level3").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level1 span").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level2 span").each(function() {
+        moveLevelOut($(this));
+    });
+    $("level3 span").each(function() {
+        moveLevelOut($(this));
+    });
+}
+
+function removeEmptyLevel() {
+
+    unpackLevels();
+
+    $("level1, level2, level3").each(function() {
+
+        if ($(this).text() == "") {
+            $(this).replaceWith($('<span style="white-space:pre;"> </span>'));
+        } 
+    });
+}
+
+
+function updateNumbers() {
+    var level1 = 0;
+    var level2 = 0;
+    var level3 = 0;
+    var cumLevel1 = 0;
+    var cumLevel2 = 0;
+    var cumLevel3 = 0;
+    var newLevel = 0;
+
+    unpackLevels();
+
+    $("level1, level2, level3").each(function() {
+
+//alert($(this).prop("tagName"));
+
+        if ($(this).text() == " ") {
+            $(this).text("");
+            if ($(this).is("level1")) {
+                newLevel = cumLevel1;
+            } else if ($(this).is("level2")) {
+                newLevel = cumLevel2;
+            } else if ($(this).is("level3")) {
+                newLevel = cumLevel3;
+            }
+        }
+
+        if ($(this).is("level1")) {
+            level1 ++;
+            cumLevel1 ++;
+            level2 = 0;
+            level3 = 0;
+            var text = $(this).text();
+            var headingText = text.substr(text.indexOf(".") + 1);
+//            $(this).before($('<level1>' + level1 + "." + headingText + '</level1>'));
+//            $(this).remove();
+            $(this).text(level1 + "." + headingText);
+//            $(this).attr("contenteditable", false);
+        } else if ($(this).is("level2")) {
+            level2 ++;
+            cumLevel2 ++;
+            level3 = 0;
+            var text = $(this).text();
+            var headingText = text.substr(text.indexOf(".") + 1);
+            headingText = headingText.substr(headingText.indexOf(".") + 1);
+            $(this).text(level1 + "." + level2 + "." + headingText);
+        } else if ($(this).is("level3")) {
+            level3 ++;
+            cumLevel3 ++;
+            var text = $(this).text();
+            var headingText = text.substr(text.indexOf(".") + 1);
+            $(this).text(level3 + "." + headingText);
+        }
+
+    });
+
+    return newLevel;
+}
+
+(function(){
+	var article = document.getElementById('textbody'),
+		container = article.parentNode,
+	    medium = new Medium({
+	        element: article,
+            modifier: 'auto',
+            autoHR: true,
+	        mode: Medium.richMode,
+	        attributes: null,
+	        tags: null,
+		    pasteAsText: false
+	    });
+
+		article.highlight = function() {
+		if (document.activeElement !== article) {
+			medium.select();
+		}
+	};
+
+	document.querySelector('.outlineButton').onmousedown = function() {
+        toggleOutline();
+		return false;
+	};
+
+
+	document.querySelector('.headingButton').onmousedown = function() {
+		article.highlight();
+		medium.invokeElement('span', {
+            style : "font-family: 'Droid Sans'; font-size: 40px; color: #A9A9A9; display: block; margin: 10px; margin-left: 40px;"
+	    });
+		return false;
+	};
+
+
+	document.querySelector('.bold').onmousedown = function() {
+		article.highlight();
+		medium.invokeElement('b', {
+	    });
+		return false;
+	};
+
+	document.querySelector('.underline').onmousedown = function() {
+		article.highlight();
+		medium.invokeElement('u', {
+		});
+		return false;
+	};
+
+	document.querySelector('.italic').onmousedown = function() {
+		article.highlight();
+		medium.invokeElement('i', {
+		});
+		return false;
+	};
+
+	document.querySelector('.strike').onmousedown = function() {
+		article.highlight();
+		medium.invokeElement('strike', {
+		});
+		return false;
+	};
+
+
+
+    article.onkeydown = function(e) {
+        if(e.keyCode == 9) {
+            medium.insertHtml('<span style="white-space:pre">    </span>');
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
+    article.onkeyup = function(e) {
+
+        if (e.keyCode == 8) {
+            var levelCount = $("level1, level2, level3").size();
+            removeEmptyLevel();
+            if (levelCount != $("level1, level2, level3").size()) {
+                updateNumbers();
+            }
+        } else if (e.keyCode == 13) {
+            var levelCount = $("level1, level2, level3").size();
+            removeEmptyLevel();
+            if (levelCount != $("level1, level2, level3").size()) {
+                updateNumbers();
+            }
+        }
+    };
+
+    document.querySelector('.heading1Button').onmousedown = function(e) {
+        var levelCount = $("level1").size();
+//		article.highlight();
+		medium.invokeElement('level1', {
+//            class : "level1 level"
+		});
+        if ($("level1").size() == levelCount) {
+            medium.insertHtml('<level1> </level1>');
+        }
+        var index = updateNumbers();
+
+        medium.cursor.moveCursorToEnd($("level1:eq(" + index + ")")[0]);
+        return false;
+    };
+    document.querySelector('.heading2Button').onmousedown = function(e) {
+        var levelCount = $("level2").size();
+//		article.highlight();
+		medium.invokeElement('level2', {
+//            class : "level2 level"
+		});
+        if ($("level2").size() == levelCount) {
+            medium.insertHtml('<level2> </level2>');
+        }
+        var index = updateNumbers();
+
+        medium.cursor.moveCursorToEnd($("level2:eq(" + index + ")")[0]);
+        return false;
+    };
+    document.querySelector('.heading3Button').onmousedown = function(e) {
+        var levelCount = $("level3").size();
+//		article.highlight();
+		medium.invokeElement('level3', {
+//            class : "level3 level"
+		});
+        if ($("level3").size() == levelCount) {
+            medium.insertHtml('<level3> </level3>');
+        }
+        var index = updateNumbers();
+
+        medium.cursor.moveCursorToEnd($("level3:eq(" + index + ")")[0]);
+        return false;
+    };
+
+})();
             $("article").contents().unwrap();
 
                 $(".tagInput, .editorUsernames").keyup(function(e) {
@@ -28,6 +300,15 @@ $(this).after($('<div class="tag">').append(newTag).append($('<i id="closeTag" c
                         e.preventDefault();
                         e.stopPropagation();
                     }
+                    if (e.keyCode == 83 && e.ctrlKey) {
+                        saveDoc();
+                        $('#savedBar').animate({'margin-top':-45},100);
+                        setTimeout( function(){
+                            $('#savedBar').animate({'margin-top':0},200);
+                        }, 3*1000);
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
                     if (e.keyCode == 13 && e.ctrlKey) {
                         $("#sourceFormBorder").css("display", "block");
                         $(".sourceInput").focus();
@@ -48,32 +329,34 @@ $(this).after($('<div class="tag">').append(newTag).append($('<i id="closeTag" c
                 
 
                 function saveDoc() {
-//                    alert($("#textbody").html());
-                    var editCount = $(".cts-1").size();
-                    var editorsDict = {};
-                    $(".cts-1").each(function() {
-                        var username = $(this).data("username");
-                        editorsDict[username] = 1;
-                    });
-                    var editorsString = "";
-                    for (var key in editorsDict) {
-                            editorsString = editorsString.concat(key).concat(":");
+                    if ($(".versionSelect option").size() == 0 || $(".versionSelect").val() == {{selected_doc.latest_id.document_version}}) {
+//                        alert($("#textbody").html());
+                        var editCount = $(".cts-1").size();
+                        var editorsDict = {};
+                        $(".cts-1").each(function() {
+                            var username = $(this).data("username");
+                            editorsDict[username] = 1;
+                        });
+                        var editorsString = "";
+                        for (var key in editorsDict) {
+                                editorsString = editorsString.concat(key).concat(":");
+                        }
+    //                    alert(editorsString);
+                      $.ajax({
+                               type: "POST",
+                               url: "{% url 'write:save_document' %}",
+                               data: {'doc_id': $("#docId").val(), 'doc_title': $(".title").val(), 'doc_text': $("#textbody").html(), 'edit_count' : editCount, 'editors_dict' : editorsString, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                               dataType: "text",
+                               success: function(response) {
+    //                                alert("Prev doc id: " + $("#docId").val());
+    //                                $("#docId").val(response);
+    //                                alert($("#docId").val());
+                                },
+                                error: function(rs, e) {
+                                       alert(rs.responseText);
+                                }
+                          });
                     }
-//                    alert(editorsString);
-                  $.ajax({
-                           type: "POST",
-                           url: "{% url 'write:save_document' %}",
-                           data: {'doc_id': $("#docId").val(), 'doc_title': $(".title").val(), 'doc_text': $("#textbody").html(), 'edit_count' : editCount, 'editors_dict' : editorsString, 'csrfmiddlewaretoken': '{{csrf_token}}'},
-                           dataType: "text",
-                           success: function(response) {
-//                                alert("Prev doc id: " + $("#docId").val());
-//                                $("#docId").val(response);
-//                                alert($("#docId").val());
-                            },
-                            error: function(rs, e) {
-                                   alert(rs.responseText);
-                            }
-                      });
 
                 }
 
@@ -146,7 +429,7 @@ alert("Clicked source submit");
 
                 setInterval(function() {
                     saveDoc();
-                    $('#autoSave').animate({'margin-top':-45},200);
+                    $('#autoSave').animate({'margin-top':-45},100);
                     setTimeout( function(){
                         $('#autoSave').animate({'margin-top':0},200);
                     }, 5*1000);
@@ -154,6 +437,10 @@ alert("Clicked source submit");
 
               $(".saveDocument").on("click", function(){ 
                     saveDoc();
+                        $('#savedBar').animate({'margin-top':-45},100);
+                        setTimeout( function(){
+                            $('#savedBar').animate({'margin-top':0},200);
+                        }, 3*1000);
                 });
 
 
@@ -185,9 +472,9 @@ alert("Clicked source submit");
                     alert(editorsString);
                 });
 
-document.execCommand('defaultParagraphSeparator', false, 'p');
+//document.execCommand('defaultParagraphSeparator', false, 'p');
 
-$("#textbody").on("paste", function(e) {
+/*$("#textbody").on("paste", function(e) {
     setTimeout(function() {
         $("#textbody").contents().each(function() {
           var keepStyle, $el;
@@ -201,7 +488,7 @@ $("#textbody").on("paste", function(e) {
         });
     }, 100);
 });
-
+*/
 
 
 //$(".title").val("{{selected_doc.document_title}}");
@@ -222,6 +509,38 @@ $(".cts-1").wrap('<span class="trackedChange" style="display:inline" contentedit
 function removeIns(){
      $(".currentTarget").remove() 
 }
+
+for (i = {{selected_doc.latest_id.document_version}}; i >= 1; i--) { 
+    $(".versionSelect").append(
+        $('<option class="draftOption" value='+i+'>').append("Draft " + i)                                                      
+    );
+}
+                                                            
+$(".versionSelect").on("change", function() {
+                                                            version = $(this).val();
+                  $.ajax({
+                           type: "POST",
+                           url: "{% url 'write:get_doc_version' %}",
+                           data: {'doc_id': $("#docId").val(), 'version': version, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                           dataType: "json",
+                           success: function(response) {
+                                    $(".editField").attr("contenteditable", "false");
+                                    if(version == {{selected_doc.latest_id.document_version}}) {
+                                        $(".editField").attr("contenteditable", "true");
+                                        $(".revert").hide();
+                                    } else {
+                                        $(".revert").hide();
+                                    }
+                                    $(".editField").empty();
+                                    $(".editField").append(response["draft_text"]);
+                            },
+                            error: function(rs, e) {
+alert("HELLO");
+                                    alert(rs.responseText);
+                            }
+                      });
+    
+});
 
     $(".ins").tooltip({
         show: null, // show immediately 
@@ -345,8 +664,13 @@ $(".sourceType").change(function() {
 <form action="{% url 'publish:publish_document' %}" method="post" id="publishForm">
     {% csrf_token %}
                 <input class="title" type="text" name="doc_title" value="{{selected_doc.document_title}}"/>
-                <input id="docId" type="hidden" value="{{selected_doc.original_id.id}}"/>
+                <input id="docId" type="hidden" value="{{selected_doc.id}}"/>
 </form>
+
+    <select class="versionSelect">
+    </select>
+    <span class="revert">Revert Document</span>
+
 {% endblock %}
 
 {% block middleContent %}
@@ -362,7 +686,13 @@ $(".sourceType").change(function() {
       </nav>
       <ul class="cd-tabs-content">
 		<li data-content="write" class="selected">
-            <div class="extendingColumn tabbedContent"><div class="articlePaddingDiv"><div id="textbody" class="editField" contenteditable="true">{{selected_doc.document_text | safe}}</div></div></div>
+            
+            <div class="extendingColumn tabbedContent">
+                <div class="articlePaddingDiv">
+  <div id="textbody" class="article demo">
+{{selected_doc.latest_id.document_text | safe}}
+  </div>
+                </div></div>
             
         </li>
 		<li data-content="bibliography">
@@ -436,15 +766,31 @@ $(".sourceType").change(function() {
 </div>
 
 <div id="autoSave">Auto Saved</div>
+<div id="savedBar">Saved</div>
 
 {% endblock %}
 {% block leftContent %}
 
                     <div class="textPaddingDiv">
+
                         <div class="leftActions">
-                            <div class="newSourceButton leftAction"><a href="#" class="actionText">New Source</a></div>
-                            <div class="saveDocument leftAction"><a href="#" class="actionText">Save</a></div>
-                            <div class="requestEdit leftAction"><a href="#" class="actionText">Request Edit</a></div>
+                                                    
+                      <div class="leftAction toolbar">
+    <span class="clickable bold" style="font-weight: bold; color: #A9A9A9">B</span>
+    <span class="clickable underline" style="text-decoration: underline; color: #A9A9A9">U</span>
+    <span class="clickable italic" style="font-style: italic; color: #A9A9A9">I</span>
+    <span class="clickable strike" style="text-decoration: line-through; color: #A9A9A9">S</span>
+  </div>   
+                      <div class="leftAction toolbar">
+    <span class="clickable heading1Button" style="color: #A9A9A9">1</span>
+    <span class="clickable heading2Button" style="color: #A9A9A9">2</span>
+    <span class="clickable heading3Button" style="color: #A9A9A9">3</span>
+  </div>
+                            <div class="outlineButton leftAction"><a href="#" class="clickable actionText">Outline</a></div>
+                            <div class="headingButton leftAction"><a href="#" class="clickable actionText">Heading</a></div>
+                            <div class="newSourceButton leftAction"><a href="#" class="clickable actionText">New Source</a></div>
+                            <div class="saveDocument leftAction"><a href="#" class="clickable actionText">Save</a></div>
+                            <div class="requestEdit leftAction"><a href="#" class="clickable actionText">Request Edit</a></div>
                         </div>
                     </div>
 {% endblock %}

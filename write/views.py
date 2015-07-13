@@ -20,7 +20,7 @@ register = template.Library()
 
 from django.contrib.auth import authenticate, login, logout, get_user
 
-from browse.models import Document, EditRequest, Citation, Message, TwoCentsUser
+from browse.models import Document, EditRequest, Citation, Message, TwoCentsUser, DocumentDraft
 from django.contrib.auth.models import User
 # Create your views here.
 
@@ -35,46 +35,53 @@ def mydrafts(request):
 def new(request):
     u = get_user(request)
     doc_title = request.POST['doc_title']
-    new_doc_id = save_doc_in_db(request, "", doc_title, "", "")
+    starter_html = request.POST['starter_html']
+    if len(starter_html) > 0:
+        new_doc_id = save_doc_in_db(request, starter_html, doc_title, "", "")
+    else:
+        new_doc_id = save_doc_in_db(request, "", doc_title, "", "")
     doc = Document.objects.get(pk=new_doc_id)
     return redirect('/write/' + doc.link_hash)
 
 
 def revision(request, hash_id):
     doc = Document.objects.filter(link_hash=hash_id)[0]
-    orig_doc = doc.original_id
-    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
-    context = {'selected_doc': current_doc}
+#    orig_doc = doc.original_id
+#    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
+    context = {'selected_doc': doc}
     return render(request, 'write/new.html', context)
 
 def save_doc_in_db(request, doc_text, doc_title, doc_id, editorsString):    
+
+    u = get_user(request)
+    prev_doc = None
     try:
         orig_doc = Document.objects.get(pk=doc_id)
-    except:
-        orig_doc = None
-    u = get_user(request)
-    if orig_doc is not None:
         prev_doc = orig_doc.latest_id
-        if doc_text != prev_doc.document_text:
-
-            Document.objects.filter(original_id=orig_doc, is_latest=True).update(is_latest=False)
-
-            d = Document(user=User.objects.get(pk=u.id), document_text=doc_text, document_title=doc_title, save_date=timezone.now(), original_id=orig_doc, is_latest=True, editors_list = editorsString)
-        else:
-            d = prev_doc
-    else:
-        d = Document(user=User.objects.get(pk=u.id), document_text=doc_text, document_title=doc_title, save_date=timezone.now(), is_latest=True, editors_list = editorsString)
-            
-    d.save()
-    if orig_doc is not None:
-        orig_doc.latest_id = d
-        orig_doc.is_latest = False;
+        new_version = prev_doc.document_version + 1
+    except:
+        orig_doc = Document(user=User.objects.get(pk=u.id), document_title=doc_title)
         orig_doc.save()
+        new_version = 0
+
+    if prev_doc is None or doc_text != prev_doc.document_text:
+        DocumentDraft.objects.filter(document=orig_doc, is_latest=True).update(is_latest=False)
+        d = DocumentDraft(document=orig_doc, document_text=doc_text, save_date=timezone.now(), is_latest=True, editors_list = editorsString, document_version = new_version)
     else:
-        d.original_id = d
-        d.latest_id = d
-        d.save()
-    return d.id
+        d = prev_doc
+
+    d.save()
+    orig_doc.latest_id = d
+    orig_doc.save_date = d.save_date
+    orig_doc.save()
+    return orig_doc.id
+
+def get_doc_version(request):
+    doc_id = request.POST['doc_id']
+    version = request.POST['version']
+    d = DocumentDraft.objects.get(document = doc_id, document_version = version)
+    context = {'draft_text' : d.document_text}
+    return HttpResponse(json.dumps(context))
     
 def request_edit(request):
     doc_text = request.POST['doc_text']
@@ -86,20 +93,18 @@ def request_edit(request):
     
     new_doc_id = save_doc_in_db(request, doc_text, doc_title, doc_id, "")
     u = get_user(request)
-    d = Document.objects.get(pk=new_doc_id)
-    orig_id = d.get_original_id().id
-    orig_doc = Document.objects.get(pk=orig_id)
+    orig_doc = Document.objects.get(pk=new_doc_id)
     
     if comment != "":
-        text = " requested edits to the document <b><a href='/edit/" + d.link_hash + "'>" + doc_title + "</a></b>:<br>" + comment
+        text = " requested edits to the document <b><a href='/edit/" + orig_doc.link_hash + "'>" + doc_title + "</a></b>:<br>" + comment
     else:
-        text = " requested edits to the document <b><a href='/edit/" + d.link_hash + "'>" + doc_title + "</a></b>"
+        text = " requested edits to the document <b><a href='/edit/" + orig_doc.link_hash + "'>" + doc_title + "</a></b>"
     
     failed_editors = []
     
     for editor_name in editors_list[:-1]:
         try:
-            e = User.objects.get(username=editor_name)
+            e = User.objects.get(username__iexact=editor_name)
             EditRequest.objects.filter(writer=u, editor=e, doc=orig_doc).delete()
             er = EditRequest(writer=u, editor=e, doc=orig_doc, request_date=timezone.now())
             er.save()
@@ -168,17 +173,17 @@ def save_document_as_edit(request):
     
     orig_doc = Document.objects.get(pk=doc_id)
     author=orig_doc.user
-    Document.objects.filter(original_id=orig_doc, is_latest=True).update(is_latest=False)
-    d = Document(user=author, document_text=text, document_title=doc_title, pub_date=timezone.now(), original_id=orig_doc, is_edit=True, is_latest=True, edit_count=edit_count, editors_list = editorsString)
+    DocumentDraft.objects.filter(document=orig_doc, is_latest=True).update(is_latest=False)
+    d = DocumentDraft(document=orig_doc, document_text=text, save_date=timezone.now(), is_edit=True, is_latest=True, edit_count=edit_count, editors_list = editorsString)
     d.save()
         
     orig_doc.latest_id = d
-    orig_doc.is_latest = False;
+    orig_doc.save_date = d.save_date
     orig_doc.save()
     
     EditRequest.objects.filter(writer=author, editor= u, doc=orig_doc).delete()
     
-    full_text = u.username + " submitted " + edit_count + " edits to the document <b><a href='/write/" + d.link_hash + "'>" + doc_title + "</a></b>"
+    full_text = u.username + " submitted " + edit_count + " edits to the document <b><a href='/write/" + orig_doc.link_hash + "'>" + doc_title + "</a></b>"
     message = Message(sender = u, recipient = author, message_text = full_text, date=timezone.now())
     message.save()
     tcu = author.twocentsuser
@@ -245,8 +250,7 @@ def get_web_content(request):
 def new_source(request):
     u = get_user(request)
     doc_id = request.POST['doc_id']
-    doc = Document.objects.get(pk=doc_id)
-    orig_doc = doc.original_id
+    orig_doc = Document.objects.get(pk=doc_id)
     new_source_type = request.POST['source_type']
     
     new_authors = request.POST.get("authors")
@@ -268,8 +272,8 @@ def new_source(request):
 def get_sources(request):
     u = get_user(request)
     doc_id = request.GET['doc_id']
-    doc = Document.objects.get(pk=doc_id)
-    orig_doc = doc.original_id
+    orig_doc = Document.objects.get(pk=doc_id)
+    #orig_doc = doc.original_id
     citation_list = Citation.objects.filter(document = orig_doc)
 
     XMLSerializer = serializers.get_serializer("xml")

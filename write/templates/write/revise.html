@@ -21,7 +21,7 @@ function htmlDecode(input){
 
 {% block middleContent %}
         <div class="paddingDiv">
-          <div class="column"><div class="articlePaddingDiv" id="rightHere" >{{selected_doc.document_text | safe }}</div></div>
+          <div class="column"><div class="articlePaddingDiv" id="rightHere" >{{selected_doc.latest_id.document_text | safe }}</div></div>
             
 </div>
 {% endblock %}

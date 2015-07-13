@@ -106,7 +106,7 @@
 {% block headerContent %}
 
 <div class="title" type="text" name="doc_title">{{selected_doc.document_title}}</div>
-                <input id="docId" type="hidden" value="{{selected_doc.original_id.id}}"/>
+                <input id="docId" type="hidden" value="{{selected_doc.id}}"/>
 {% endblock %}
 
 {% block middleContent %}
@@ -114,7 +114,7 @@
         <div class="paddingDiv">
           <div class="extendingColumn"><div class="articlePaddingDiv">
 					<div id="textbody" class="editField">
-                        <article>{{selected_doc.document_text | safe}}</article>
+                        <article>{{selected_doc.latest_id.document_text | safe}}</article>
                     </div>	
             </div></div>
   <!--input type="submit" form="publishForm" value="Submit"-->

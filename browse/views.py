@@ -14,8 +14,9 @@ from django.contrib.auth.forms import UserCreationForm
 register = template.Library()
 
 from django.contrib.auth import authenticate, login, logout, get_user
+from django.db.models import Q
 
-from browse.models import Document, PublishedDocument, Bookmark, EditRequest, Comment, Vote, Publication, TwoCentsUser, Message, Link, Tag
+from browse.models import Document, PublishedDocument, Bookmark, EditRequest, Comment, Vote, Publication, TwoCentsUser, Message, Link, Tag, DocumentDraft
 from django.contrib.auth.models import User
 
 from django.core import serializers
@@ -24,10 +25,14 @@ from django.core import serializers
 
 def article_preview_context(request, page):
     u = get_user(request)
-    tags = u.twocentsuser.active_tags.all()
-    if len(tags) > 0:
-        latest_document_list = PublishedDocument.objects.filter(pub_date__lte=timezone.now(), tags__in=tags).order_by('-rank')
+    if (u.is_authenticated()):
+        tags = u.twocentsuser.active_tags.all()
+        if len(tags) > 0:
+            latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all()) | Q(user__in=u.twocentsuser.user_follows.all()) | Q(pub_date__lte=timezone.now(), tags__in=tags)).distinct().order_by('-rank')
+        else:
+            latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all()) | Q(pub_date__lte=timezone.now()) | Q(user__in=u.twocentsuser.user_follows.all())).distinct().order_by('-rank')
     else:
+        tags = []
         latest_document_list = PublishedDocument.objects.filter(pub_date__lte=timezone.now()).order_by('-rank')
 
     paginator = Paginator(latest_document_list, 48)
@@ -117,11 +122,27 @@ def save_author_desc(request):
     twocentsuser.save()
     return HttpResponse(desc)
 
+def save_pub_desc(request):
+    u = get_user(request)
+    desc = request.POST['desc']
+    pub_id = request.POST['publication_id']
+    pub = Publication.objects.get(pk = pub_id)
+    pub.description = desc
+    pub.save()
+    return HttpResponse(desc)
+
 
 def publication(request, name):
-    pub = Publication.objects.get(publication_name=name)
+    pub = Publication.objects.get(publication_name__iexact=name)
     u = get_user(request)
-    latest_document_list = PublishedDocument.objects.filter(publication=pub).order_by('-pub_date')[:16]
+    if pub.is_open:
+        latest_document_list = PublishedDocument.objects.filter(publication=pub).order_by('-rank')[:16]        
+    else:
+        latest_document_list = PublishedDocument.objects.filter(publication=pub).order_by('-pub_date')[:16]
+    
+    is_subscribed = False
+    if (u.is_authenticated() and u.twocentsuser.pub_follows.filter(id=pub.id).exists()):
+        is_subscribed = True
     
     vote_dict = {}
     for d in latest_document_list:
@@ -131,14 +152,16 @@ def publication(request, name):
         except:
             vote_dict[str(d.id)] = False
             
-    context = {'latest_document_list': latest_document_list, 'doc_votes': json.dumps(vote_dict)}
-    return render(request, 'browse/index.html', context)
+    context = {'latest_document_list': latest_document_list, 'doc_votes': json.dumps(vote_dict), 'publication':pub, 'subscribed' : is_subscribed}
+    return render(request, 'browse/publication.html', context)
     
 def read(request, hash_id):
     try:
-        doc = Document.objects.get(link_hash=hash_id)
-        if doc.has_been_published:
-            doc = PublishedDocument.objects.get(original_id=doc.original_id)
+        orig_doc = Document.objects.get(link_hash=hash_id)
+        if orig_doc.has_been_published:
+            doc = PublishedDocument.objects.get(original_id=orig_doc)
+        else:
+            doc = doc.latest_id
     except:
         doc = PublishedDocument.objects.get(link_hash=hash_id)
     context = {'selected_doc': doc, 'bookmark' : get_bookmark_offset(request, doc)}
@@ -157,43 +180,73 @@ def get_latest_bookmarks(request):
     xml_serializer = XMLSerializer()
     return HttpResponse(xml_serializer.serialize(doc_list, fields="document_title, link_hash"))
 
+def get_latest_pub_submissions(request):
+    count = int(request.POST['count'])
+    u = get_user(request)
+    pub_list = Publication.objects.filter(editors=u.id)[:count]
+    pubs = []
+    for pub in pub_list:
+        pub_stats = [pub.publication_name, pub.pendingArticles.all().exists()]
+        pubs.append(pub_stats)
+        
+    XMLSerializer = serializers.get_serializer("xml")
+    xml_serializer = XMLSerializer()
+    context = {"docs" : pubs}
+#    return HttpResponse(xml_serializer.serialize(pubs, fields="publication_name"))
+    return HttpResponse(json.dumps(context))
+    
+
 def get_latest_docs(request):
     count = int(request.POST['count'])
     u = get_user(request)
-    doc_list = Document.objects.filter(user=u.id, is_latest=True, is_edit=False).order_by('-save_date')[:count]
+    doc_list = Document.objects.filter(user=u.id).order_by('-save_date')[:count]
     response = ""
-    XMLSerializer = serializers.get_serializer("xml")
-    xml_serializer = XMLSerializer()
+    JSONSerializer = serializers.get_serializer("json")
+    json_serializer = JSONSerializer()
     pubs = {}
     sub_pubs = {}
+    editors = {}
+    docs = []
     for d in doc_list:
+        pubs_json = []
+        sub_pubs_json = []
         try:
-            pub_doc = PublishedDocument.objects.get(original_id=d.original_id)
+            pub_doc = PublishedDocument.objects.get(original_id=d)
             doc_pubs = pub_doc.publication_set.all()
-            pubs_xml = xml_serializer.serialize(doc_pubs, fields="publication_name")
+            for pub in doc_pubs:
+                pubs_json.append(pub.publication_name)
+#            pubs_xml = json_serializer.serialize(doc_pubs, fields="publication_name")
         except:
+            pubs_json = []
             pubs_xml = ""
         try:
-            o = d.original_id
-            doc_sub_pubs = o.publication_set.all()
-            sub_pubs_xml = xml_serializer.serialize(doc_sub_pubs, fields="publication_name")
+            doc_sub_pubs = d.publication_set.all()
+            for pub in doc_sub_pubs:
+                sub_pubs_json.append(pub.publication_name)
+ #           sub_pubs_xml = json_serializer.serialize(doc_sub_pubs, fields="publication_name")
         except:
+            sub_pubs_json = []
             sub_pubs_xml = ""
-        pubs[d.id] = pubs_xml
-        sub_pubs[d.id] = sub_pubs_xml
-        
-    context = {"docs" : xml_serializer.serialize(doc_list, fields="document_title, link_hash, editors_list, original_id.has_been_published"), "pubs" : pubs, "sub_pubs" : sub_pubs}
+        try:
+            editors[d.document_title] = d.latest_id.editors_list
+        except:
+            editors[d.document_title] = ""
+        pubs[d.id] = pubs_json
+        sub_pubs[d.id] = sub_pubs_json
+        docs.append({"document_title": d.document_title, "link_hash": d.link_hash, "editors_list": d.editors_list, "has_been_published":d.has_been_published, "pk": d.id})
+    
+    context = {"docs" : docs, "pubs" : pubs, "sub_pubs" : sub_pubs, "editors" : editors}
 #    return HttpResponse(xml_serializer.serialize(pubs, fields="publication_name"))
     return HttpResponse(json.dumps(context))
 
 def get_latest_revs(request):
     count = int(request.POST['count'])
     u = get_user(request)
-    doc_list = Document.objects.filter(user=u.id, is_latest=True, has_been_published=False).order_by('-save_date')[:count]
+    doc_list = Document.objects.filter(user=u.id, has_been_published=False).order_by('-save_date')[:count]
     response = ""
     XMLSerializer = serializers.get_serializer("xml")
     xml_serializer = XMLSerializer()
-    return HttpResponse(xml_serializer.serialize(doc_list, fields="document_title, link_hash, edit_count, editors_list, original_id.has_been_published"))
+    return HttpResponse(xml_serializer.serialize(doc_list, fields="document_title, link_hash, latest_id.edit_count, latest_id.editors_list, original_id.has_been_published"))
 
 def get_latest_edits(request):
     count = int(request.POST['count'])
@@ -207,13 +260,46 @@ def get_latest_edits(request):
     xml_serializer = XMLSerializer()
     return HttpResponse(xml_serializer.serialize(doc_list, fields="document_title, link_hash"))
 
-def get_comments(request):
-    doc_id = request.GET['doc_id']
-    doc=PublishedDocument.objects.get(pk=doc_id)
+
+def get_replies(request, comment_id):
+#    comment_id = request.GET['comment_id']
+#    full_replies = request.GET['full_replies']
+    full_replies = 'false'
+    top = Comment.objects.get(pk = comment_id)
     u = get_user(request)
-    comment_list = Comment.objects.filter(document=doc).order_by('-date')[:20]
+    full_comments = Comment.objects.filter(top_comment=top).exclude(pk=top.id).order_by('-date')
+    if (full_replies=='true'):
+        comment_list = full_comments[2:]
+    else:
+        comment_list = full_comments[:2]
     XMLSerializer = serializers.get_serializer("xml")
     xml_serializer = XMLSerializer()
+    
+    vote_dict = {}
+    replies_dict = {}
+    for c in comment_list:
+        try:
+            vote = Vote.objects.get(user = u, comment = c)
+            vote_dict[str(c.id)] = vote.active
+        except:
+            vote_dict[str(c.id)] = False
+    context = {}
+    context['comments']= xml_serializer.serialize(comment_list)
+    context['comment_votes']= vote_dict
+    context['count']= len(full_comments)
+    context['replies'] = replies_dict
+
+    return json.dumps(context)
+
+
+
+def get_full_replies(request):
+    comment_id = request.GET['comment_id']
+    top = Comment.objects.get(pk = comment_id)
+    comment_list = Comment.objects.filter(top_comment=top).order_by('-date')
+    XMLSerializer = serializers.get_serializer("xml")
+    xml_serializer = XMLSerializer()
+    u = get_user(request)
     
     vote_dict = {}
     for c in comment_list:
@@ -228,6 +314,32 @@ def get_comments(request):
     context['count']= len(comment_list)
 
     return HttpResponse(json.dumps(context))
+
+def get_comments(request):
+    doc_id = request.GET['doc_id']
+    doc=PublishedDocument.objects.get(pk=doc_id)
+    u = get_user(request)
+    comment_list = Comment.objects.filter(document=doc, parent=0).order_by('-date')[:20]
+    XMLSerializer = serializers.get_serializer("xml")
+    xml_serializer = XMLSerializer()
+    
+    vote_dict = {}
+    replies_dict = {}
+    for c in comment_list:
+        replies_dict[c.id] = get_replies(request, c.id)
+        try:
+            vote = Vote.objects.get(user = u, comment = c)
+            vote_dict[str(c.id)] = vote.active
+        except:
+            vote_dict[str(c.id)] = False
+    context = {}
+    context['comments']= xml_serializer.serialize(comment_list)
+    context['comment_votes']= vote_dict
+    context['count']= len(comment_list)
+    context['replies'] = replies_dict
+
+    return HttpResponse(json.dumps(context))
+
 
 def get_subscriptions(request):
     u = get_user(request)
@@ -332,15 +444,30 @@ def add_comment(request):
     try:
         reply = request.POST['parent']
         parent_comment = Comment.objects.get(pk=reply)
-        comment = Comment(user = u, username = u.username, document = doc, comment_text = text, parent = parent_comment, date=timezone.now())
+        top = parent_comment.top_comment
+        comment = Comment(user = u, username = u.username, document = doc, comment_text = text, parent = parent_comment, date=timezone.now(), top_comment = top)
     except:
         comment = Comment(user = u, username = u.username,  document = doc, comment_text = text, date=timezone.now())
+        comment.save()
+        comment.top_comment = comment
         
     comment.save()
     comment_list = [comment]
     XMLSerializer = serializers.get_serializer("xml")
     xml_serializer = XMLSerializer()
     return HttpResponse(xml_serializer.serialize(comment_list))
+
+def send_message_with_args(request, recipient_name, text, u):
+    rec = User.objects.get(username=recipient_name)
+    tcu = rec.twocentsuser
+    tcu.has_unread_message = True
+    tcu.save()
+
+    message = Message(sender = u, recipient = rec, message_text = text, date=timezone.now())
+    message.save()
+
+        
+    return author(request, recipient_name)
 
 def send_message(request):
     recipient_name = request.POST['recipient']
@@ -373,6 +500,7 @@ def messages(request, page):
     tcu.has_unread_message = False
     tcu.save()
     message_list = Message.objects.filter(recipient = u)
+    last_page = False
 
     paginator = Paginator(message_list, 15)
     try:
@@ -380,11 +508,14 @@ def messages(request, page):
     except PageNotAnInteger:
         # If page is not an integer, deliver first page.
         returned_messages = paginator.page(1)
+        page = 1
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         returned_messages = paginator.page(paginator.num_pages)
+        page = paginator.num_pages
+        last_page = True
 
-    context = {'messages': returned_messages}
+    context = {'messages': reversed(returned_messages), 'page' : int(page), 'last_page': last_page}
     return render(request, 'browse/messages.html', context)
 
 def sent_messages(request, page):
@@ -466,7 +597,10 @@ def follow_user(request):
     u = get_user(request).twocentsuser
     member_name = request.POST['username']
     target_author = User.objects.get(username=member_name)
-    u.user_follows.add(target_author)
+    if u.user_follows.filter(pk = target_author.id).exists():
+        u.user_follows.remove(target_author)
+    else:
+        u.user_follows.add(target_author)
     u.save()
     return HttpResponse(member_name)
 
@@ -506,6 +640,42 @@ def follow_tags(request):
     u.save()
     return HttpResponseRedirect(reverse('browse:index'))
 
+def change_subs(request):
+    new_subs = request.POST['new_subs']
+    remove_subs = request.POST['remove']
+    remove_user_subs = request.POST['remove_user']
+    new_subs_list = new_subs.split(":")
+    remove_subs_list = remove_subs.split(":")
+    remove_user_subs_list = remove_user_subs.split(":")
+    u = get_user(request).twocentsuser
+    for sub in new_subs_list:
+        if sub != "":
+            try:
+                p = Publication.objects.get(publication_name = sub)
+                u.pub_follows.add(p)
+            except:
+                try:
+                    author = User.objects.get(username = sub)
+                    u.user_follows.add(author)
+                except:
+                    pass
+    for sub in remove_subs_list:
+        if sub != "":
+            try:
+                p = Publication.objects.get(publication_name = sub)
+                u.pub_follows.remove(p)
+            except:
+                pass
+    for sub in remove_user_subs_list:
+        if sub != "":
+            try:
+                author = User.objects.get(username = sub)
+                u.user_follows.remove(author)
+            except:
+                pass
+    u.save()
+    return HttpResponseRedirect(reverse('browse:index'))
+
 def add_tags(request):
     tags = request.POST['tags']
     doc_id = request.POST['doc_id']
@@ -526,6 +696,7 @@ def add_tags(request):
 def toggle_tag(request):
     tag = request.POST['tag']
     page = request.POST['page']
+    remove = request.POST['remove']
     tag_text = tag.lower()
     u = get_user(request).twocentsuser
     if tag_text != "":
@@ -538,12 +709,15 @@ def toggle_tag(request):
             u.active_tags.add(t)
             u.save()
             return article_previews(request, page)
-        if (not t in u.tag_follows.all()):
+        if (not t in u.tag_follows.all() and remove == "false"):
             u.tag_follows.add(t)
             u.active_tags.add(t)
-        elif (not t in u.active_tags.all()):
+        elif (not t in u.active_tags.all() and remove == "false"):
             u.active_tags.add(t)
-        else:
+        elif (remove == "false"):
+            u.active_tags.remove(t)
+        elif (remove == "true"):
+            u.tag_follows.remove(t)
             u.active_tags.remove(t)
         u.save()
     return article_previews(request, page)
