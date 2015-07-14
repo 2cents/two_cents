@@ -633,3 +633,19 @@ $(".bookmarked").each(function() {
                     <div class="textPaddingDiv"><div class="leftActions"><div class="addTags leftAction"><a href="#" class="actionText">Add Tags</a></div></div></div>
 {% endif %}
 {% endblock %}
+{% block rightContent %}
+{% if user.is_authenticated %}
+<div class="paddingDiv">
+    <div class="column">
+        <div class="textPaddingDiv">
+            <b>Recently Read</b><br>
+                {% for recently_read in recent_articles %}
+            <div class="recentlyRead">
+                    <a href={% url 'browse:read' recently_read.article.link_hash %}>{{ recently_read.article.document_title }}</a>
+            </div>
+                {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

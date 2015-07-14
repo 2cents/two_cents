@@ -142,9 +142,6 @@ function renewPreviews(tagName, removeTag) {
 {% block leftContent %}
                         {% if user.is_authenticated %}
                     <div class="textPaddingDiv">
-                        <div class="leftActions leftSubscriptions">
-                        <!--div class="leftAction followTags"><a href="#0">Follow Tags</a></div-->
-                        </div>
                     </div>
 <div class="followTags"><a href="#0" class="clickable"><i class="fa fa-plus"></i> Manage Tags</a></div>
 <div class="tagBox">
@@ -222,6 +219,22 @@ function renewPreviews(tagName, removeTag) {
     
 </div>
 
+{% endblock %}
+{% block rightContent %}
+{% if user.is_authenticated %}
+<div class="paddingDiv">
+    <div class="column">
+        <div class="textPaddingDiv">
+            <b >Recently Read</b><br>
+                {% for recently_read in recent_articles %}
+            <div class="recentlyRead">
+                    <a href={% url 'browse:read' recently_read.article.link_hash %}>{{ recently_read.article.document_title }}</a>
+            </div>
+                {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block headerContent %}

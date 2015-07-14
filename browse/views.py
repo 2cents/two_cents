@@ -16,12 +16,31 @@ register = template.Library()
 from django.contrib.auth import authenticate, login, logout, get_user
 from django.db.models import Q
 
-from browse.models import Document, PublishedDocument, Bookmark, EditRequest, Comment, Vote, Publication, TwoCentsUser, Message, Link, Tag, DocumentDraft
+from browse.models import Document, PublishedDocument, Bookmark, EditRequest, Comment, Vote, Publication, TwoCentsUser, Message, Link, Tag, DocumentDraft, RecentlyRead
 from django.contrib.auth.models import User
 
 from django.core import serializers
 
 # Create your views here.
+
+def get_recently_read(user):
+    recent_articles = RecentlyRead.objects.filter(user = user).order_by('-date')
+    return recent_articles
+
+def add_recently_read(user, doc):
+    recent_articles = get_recently_read(user)
+    if recent_articles.filter(article = doc).exists():
+        earliest_article = recent_articles.get(article = doc)
+        earliest_article.save()
+        return recent_articles[1:]
+    elif len(recent_articles) > 5:
+        earliest_article = recent_articles[5]
+        earliest_article.article = doc
+        earliest_article.save()
+    else:
+        earliest_article = RecentlyRead(user = user, article = doc)
+        earliest_article.save()
+    return recent_articles[:5]
 
 def auth_redirect(user):
     if not user.is_authenticated():
@@ -31,7 +50,9 @@ def auth_redirect(user):
 
 def article_preview_context(request, page):
     u = get_user(request)
+    recent_articles = []
     if (u.is_authenticated()):
+        recent_articles = get_recently_read(u)[:5]
         tags = u.twocentsuser.active_tags.all()
         if len(tags) > 0:
             latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all()) | Q(user__in=u.twocentsuser.user_follows.all()) | Q(pub_date__lte=timezone.now(), tags__in=tags)).distinct().order_by('-rank')
@@ -69,7 +90,7 @@ def article_preview_context(request, page):
                 bookmark_dict.append(d.id)
         except:
             pass
-    context = {'bookmark_list': bookmark_list, 'latest_document_list': returned_docs, 'doc_votes': vote_dict, 'bookmarks': bookmark_dict, 'page': page}
+    context = {'bookmark_list': bookmark_list, 'latest_document_list': returned_docs, 'doc_votes': vote_dict, 'bookmarks': bookmark_dict, 'page': page, 'recent_articles' : recent_articles}
     return context
 
 def article_previews(request, page):
@@ -165,16 +186,23 @@ def publication(request, name):
     context['form'] = form
     return render(request, 'browse/publication.html', context)
     
+    
 def read(request, hash_id):
+    u = get_user(request)
+    recent_articles = []
     try:
         orig_doc = Document.objects.get(link_hash=hash_id)
         if orig_doc.has_been_published:
             doc = PublishedDocument.objects.get(original_id=orig_doc)
+            if u.is_authenticated:
+                recent_articles = add_recently_read(user, doc)
         else:
             doc = doc.latest_id
     except:
         doc = PublishedDocument.objects.get(link_hash=hash_id)
-    context = {'selected_doc': doc, 'bookmark' : get_bookmark_offset(request, doc)}
+        if u.is_authenticated:
+            recent_articles = add_recently_read(u, doc)
+    context = {'selected_doc': doc, 'bookmark' : get_bookmark_offset(request, doc), 'recent_articles' : recent_articles}
     form = UserCreationForm()
     context['form'] = form
     return render(request, 'browse/read.html', context)

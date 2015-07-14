@@ -133,6 +133,15 @@ class Bookmark(models.Model):
     active = models.BooleanField(default=True)
     bookmark_date = models.DateTimeField('date bookmarked')
     
+class RecentlyRead(models.Model):
+    user = models.ForeignKey(User)
+    article = models.ForeignKey(PublishedDocument)
+    date = models.DateTimeField(default = datetime.now)
+
+    def save(self, *args, **kwargs):
+        self.date = datetime.now()
+        super(RecentlyRead, self).save(*args, **kwargs)
+    
 class Publication(models.Model):
     owner = models.ForeignKey(User)
     editors = models.ManyToManyField(User, related_name="publication_editors")
