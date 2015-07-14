@@ -1531,6 +1531,20 @@ select {
     margin-left: 0px;    
 }
 
+.recentlyRead {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #E9E9E9;
+    -moz-transition: all .1s ease-in;
+    -o-transition: all .1s ease-in;
+    -webkit-transition: all .1s ease-in;
+    transition: all .1s ease-in;
+}
+
+.recentlyRead:hover {
+    margin-left: 5px;   
+}
+
 .manageSubs {
     text-align: center;
     font-weight: bold;
