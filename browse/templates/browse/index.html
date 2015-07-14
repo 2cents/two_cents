@@ -12,21 +12,7 @@
         }
 
     }
-/*
-              $.ajax({
-                       type: "GET",
-                       url: "{% url 'browse:get_subscriptions' %}",
-                       data: {'csrfmiddlewaretoken': '{{csrf_token}}'},
-                       dataType: "json",
-                       success: function(response) {
-                            addUserFollows(response["users"]);
-                        },
-                        error: function(rs, e) {
-                               alert(rs.responseText);
-                        }
-                  }); 
-*/
-{% endif %}
+
 
 
 
@@ -149,6 +135,9 @@ function renewPreviews(tagName, removeTag) {
         });
 
 
+
+
+{% endif %}
 {% endblock %}
 {% block leftContent %}
                         {% if user.is_authenticated %}

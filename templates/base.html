@@ -107,6 +107,9 @@ function addTabListeners() {
                        data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
                        dataType: "text",
                        success: function(response) {
+                            if ($("#read ul").size() < 1) {
+                                $('#read li').append($('<ul>'));
+                            }
                             $("#read .leftDocument").remove();
                            if ($(response).find("object").length == 0) {
                                $('#read ul').append(
@@ -142,6 +145,9 @@ function addTabListeners() {
                        data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
                        dataType: "text",
                        success: function(response) {
+                            if ($("#write ul").size() < 1) {
+                                $('#write li').append($('<ul>'));
+                            }
                             $("#write .leftDocument").remove();
                            $('#write ul').append(
                                 $('<li class="leftDocument">').append(
@@ -188,6 +194,9 @@ function addTabListeners() {
                        data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
                        dataType: "json",
                        success: function(response) {
+                            if ($("#pub ul").size() < 1) {
+                                $('#pub li').append($('<ul>'));
+                            }
                             $("#pub .leftDocument").remove();
                            if ($(response["docs"]).length == 0) {
                                $('#pub ul').append(
@@ -240,6 +249,9 @@ function addTabListeners() {
                        data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5},
                        dataType: "text",
                        success: function(response) {
+                            if ($("#edit ul").size() < 1) {
+                                $('#edit li').append($('<ul>'));
+                            }
                             $("#edit .leftDocument").remove();
                            if ($(response).find("object").length == 0) {
                                $('#edit ul').append(
@@ -276,18 +288,33 @@ function addTabListeners() {
                            data: {'doc_id': docId,  'offset': charOffset, 'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 5, 'active':active},
                            dataType: "text",
                            success: function(response) {
+                                if ($("#read ul").size() < 1) {
+                                    $('#read li').append($('<ul>'));
+                                }
                                $("#read .leftDocument").remove();
-                               $(response).find("object").each(function() {
-                                   title = $(this).find('[name="document_title"]').text();
-                                   hash = $(this).find('[name="link_hash"]').text();
+                               if ($(response).find("object").length == 0) {
+                                       $(".readIcon").removeClass("notification");
                                    $('#read ul').append(
                                     $('<li class="leftDocument">').append(
                                         $('<div>').append(
-                                            $('<a>').attr('href','/browse/read/' + hash).append(title)
+                                            $('<a>').attr('href','/browse/').append("No Bookmarks")
                                         )
                                     )
-                                   );    
-                               });
+                                   );                                
+                               } else {
+                                   $(response).find("object").each(function() {
+                                       $(".readIcon").addClass("notification");
+                                       title = $(this).find('[name="document_title"]').text();
+                                       hash = $(this).find('[name="link_hash"]').text();
+                                       $('#read ul').append(
+                                        $('<li class="leftDocument">').append(
+                                            $('<div>').append(
+                                                $('<a>').attr('href','/browse/read/' + hash).append(title)
+                                            )
+                                        )
+                                       );    
+                                   });
+                               }
                             },
                             error: function(rs, e) {
                                    alert(rs.responseText);
@@ -488,14 +515,14 @@ function addPreviewListeners() {
                 <div class="textPaddingDiv">
                     <div class="leftActions">
                         <div class="leftAction" id="read"><li><a href="{% url 'browse:index' %}"><i class="fa fa-newspaper-o icon readIcon"></i><div class="actionText">Read</div></a>
-                                <ul></ul></li>
+                                </li>
                         </div>
                         <div class="leftAction" id="write"><li><a href="{% url 'write:mydrafts' %}"><i class="fa fa-pencil icon writeIcon"></i><div class="actionText">Write</div></a>
-                                <ul></ul></li></div>
+                                </li></div>
                         <div class="leftAction" id="edit"><li><a href="{% url 'edit:myedits' %}"><i class="fa fa-eraser icon editIcon"></i><div class="actionText">Edit</div></a>
-                                <ul></ul></li></div>
+                                </li></div>
                         <div class="leftAction" id="pub"><li><a href="{% url 'publish:mydocs' %}"><i class="fa fa-bullhorn icon pubIcon"></i><div class="actionText">Publish</div></a>
-                                <ul></ul></li></div>
+                                </li></div>
                     </div>
                         <!--b>Left Column: <em>230px</em></b-->
                 </div>
