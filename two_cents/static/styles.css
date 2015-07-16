@@ -1065,12 +1065,19 @@ button.cancel {
 }
 
 .publishButton {
+    margin-left: 10px;
     float: right;
 }
 
 .unlistButton {
     float: right;
     margin-left: 10px;
+}
+
+.unlistPubs {
+    margin: 20px;
+    font-size: 18px;
+    font-weight: bold;
 }
 
 .redButton {

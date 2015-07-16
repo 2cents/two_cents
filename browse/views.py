@@ -195,7 +195,7 @@ def read(request, hash_id):
         if orig_doc.has_been_published:
             doc = PublishedDocument.objects.get(original_id=orig_doc)
             if u.is_authenticated:
-                recent_articles = add_recently_read(user, doc)
+                recent_articles = add_recently_read(u, doc)
         else:
             doc = doc.latest_id
     except:
@@ -247,11 +247,13 @@ def get_latest_docs(request):
     sub_pubs = {}
     editors = {}
     docs = []
+    unlisted = False
     for d in doc_list:
         pubs_json = []
         sub_pubs_json = []
         try:
             pub_doc = PublishedDocument.objects.get(original_id=d)
+            unlisted = pub_doc.unlisted
             doc_pubs = pub_doc.publication_set.all()
             for pub in doc_pubs:
                 pubs_json.append(pub.publication_name)
@@ -273,7 +275,7 @@ def get_latest_docs(request):
             editors[d.document_title] = ""
         pubs[d.id] = pubs_json
         sub_pubs[d.id] = sub_pubs_json
-        docs.append({"document_title": d.document_title, "link_hash": d.link_hash, "editors_list": d.editors_list, "has_been_published":d.has_been_published, "pk": d.id})
+        docs.append({"document_title": d.document_title, "link_hash": d.link_hash, "editors_list": d.editors_list, "has_been_published":d.has_been_published, "unlisted": unlisted, "pk": d.id})
     
     context = {"docs" : docs, "pubs" : pubs, "sub_pubs" : sub_pubs, "editors" : editors}
 #    return HttpResponse(xml_serializer.serialize(pubs, fields="publication_name"))

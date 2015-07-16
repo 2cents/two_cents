@@ -8,8 +8,7 @@
                        data: {'csrfmiddlewaretoken': '{{csrf_token}}', 'count': 50},
                        dataType: "json",
                        success: function(response) {
-                                console.log(response["pubs"]);
-editors = response["editors"];
+                            editors = response["editors"];
                            $(response["docs"]).each(function() {
                                title = $(this)[0]["document_title"];
                                id = $(this)[0]["pk"];
@@ -19,7 +18,9 @@ editors = response["editors"];
                                 editorsList = editors[title];
                                 isPublishedString = "";
                                 isPublishedDiv = "";
+                                unlistDiv = ""
                                 isPublished = $(this)[0]["has_been_published"];
+                                unlisted = $(this)[0]["unlisted"];
                                 href = '/write/';
                                 if (isPublished) {
                                     isPublishedString = " | Published";
@@ -28,10 +29,18 @@ editors = response["editors"];
                                     for (pub in pubs) {
                                         pubList.append($('<div class="pubListItem">').append($('<a>').attr("href", "/browse/publication/" + pubs[pub]).append(pubs[pub])));
                                     }
-                                    if (pubs.length == 0) {
-                                        pubList.append($('<div class="pubListItem">').append("Self Published"));
+                                    if (pubs.length == 0 && unlisted) {
+                                        isPublishedDiv = $('<div class="isPublishedDiv">').append(" | Unlisted");
+                                    } else {
+                                        if (pubs.length == 0) {
+                                            pubList.append($('<div class="pubListItem">').append("Self Published"));
+                                        }
+                                        isPublishedDiv.append(pubList);
                                     }
-                                    isPublishedDiv.append(pubList);
+
+                                    if (!unlisted) {
+                                        unlistDiv = $('<button class="myUnlistButton redButton">Unlist</button>');
+                                    }
                                     href = '/browse/read/';
                                 }
                                 if (editorsList === "") {
@@ -40,6 +49,8 @@ editors = response["editors"];
                                             $('<a>').attr('id', "document" + id).attr('href',href + hash).append(title).append(isPublishedDiv)
                                         ).append(
                                             $('<button class="myPublishButton publishButton blueButton">').append("Publish")
+                                        ).append(
+                                            unlistDiv
                                         ).append(
                                             $('<input type="hidden" class="docHash">').attr('value', hash)
                                         )
@@ -97,6 +108,42 @@ editors = response["editors"];
                                     $("#publishForm").find('option[value="' + pub_name + '"]').attr('disabled','disabled').append(" | Submitted");
                                 });
                                 $("#publishForm").show();
+                            });
+
+                            $(".myUnlistButton").on("click", function(){
+                                $(".unlistPubs").empty();
+                                $(".unlistWarning").show();
+                                var pubNames = "";
+                                if ($(this).closest(".middleSelection").find(".pubListItem a").size() > 0) {
+                                    $(this).closest(".middleSelection").find(".pubListItem a").each(function() {
+                                        $(".unlistPubs").append(
+                                            $('<div>').append($(this).text())
+                                        );
+                                        pubNames = pubNames + $(this).text() + ":";
+                                    });
+                                } else {
+                                    $(".unlistWarning").hide();
+                                }
+                                $(".formDocHash").val($(this).closest(".middleSelection").find(".docHash").val());
+                                $(".formPubNames").val(pubNames);
+                                $("#myUnlistFormBorder").show();
+                            });
+
+
+                            $(".myUnlist").on("click", function() {
+                                  $.ajax({
+                                           type: "POST",
+                                           url: "{% url 'publish:unlist' %}",
+                                           data: {'docHash': $(".formDocHash").val(), 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                                           dataType: "text",
+                                           success: function(response) {
+                                                location.reload();
+                                            
+                                            },
+                                            error: function(rs, e) {
+                                                   alert(rs.responseText);
+                                            }
+                                      });
                             });
                         },
                         error: function(rs, e) {
@@ -207,10 +254,17 @@ function addPublishedArticles(publication, publication_name) {
                             var $pubArticles = $('<div class="pubArticles">').append($('<h5>').append('Published Articles <i class="fa fa-minus-circle">')).append('<div class="slideContents">');
 
                             $.each(publication["published_articles"], function(title, hash_date_auth) {
+                            var unlisted = hash_date_auth[3];
+                            var unlistNotification = ""
+                            if (unlisted) {
+                                unlistNotification = $('<i class="fa fa-exclamation middleSelectionNotification">');
+                            }
                                 if (title != "") {
                                     var $selection = 
                                         $('<div class="middleSelection">').append(
                                             $('<div>').append(
+                                                unlistNotification
+                                            ).append(
                                                 $('<span class="pub_date">').append(hash_date_auth[1])
                                             ).append(
                                                 $('<a class="pub_date">').attr("href", "/browse/author/" + hash_date_auth[2]).append(hash_date_auth[2])
@@ -296,6 +350,7 @@ $(".rejectButton").unbind();
             $(".formPubName").val($(this).closest(".middleSelection").find(".pubName").val());
             $("#rejectFormBorder").show();
         });
+
 
 
 $(".unlist").unbind();
@@ -567,6 +622,22 @@ $(window.location.hash).trigger("click");
                     <input type="hidden" name="docHash" class="formDocHash">
                     <input type="hidden" name="publication_name" class="formPubName">
                     <button class="unlist redButton">Unlist</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+            
+            <div id="myUnlistFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="myUnlistForm" action="javascript:void(0);">
+                    <h3>Are you sure you want to unlist this document?</h3>
+                    <div class="unlistWarning">
+                        By pressing "Unlist", this document will be unlisted from your Author page, but will not be fully unlisted until the following Publications choose to unlist the document as well:
+                        <div class="unlistPubs">
+                        </div>
+                        They will be notified of your wish to unlist the document.
+                    </div>
+                    <input type="hidden" name="docHash" class="formDocHash">
+                    <input type="hidden" name="publication_names" class="formPubNames">
+                    <button class="myUnlist redButton">Unlist</button>
                     <button type="button" class="cancel"><i class="fa fa-times"></i></button>
                 </form>
             </div>

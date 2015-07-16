@@ -15,5 +15,6 @@ urlpatterns = patterns('',
     url(r'^publish_document_to_publication/$', views.publish_document_to_publication, name='publish_document_to_publication'),
     url(r'^publish_document/$', views.publish_document, name='publish_document'),
     url(r'^review/(?P<hash_id>.+)/$', views.review, name='review'),
+    url(r'^unlist/$', views.unlist, name='unlist'),
     url(r'^$', views.mydocs, name='mydocs'),
 )

@@ -74,6 +74,7 @@ class PublishedDocument(models.Model):
     document_title = models.CharField(max_length=200)
     original_id = models.ForeignKey(Document, related_name="orig_doc_id", default=0)
     has_comments = models.BooleanField(default = True)
+    unlisted = models.BooleanField(default = False)
     user = models.ForeignKey(User)
     tags = models.ManyToManyField(Tag, related_name="tags")
     pub_date = models.DateTimeField('date published', null=True)

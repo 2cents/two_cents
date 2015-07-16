@@ -56,7 +56,11 @@ def publish_document(request):
             doc_text = current_doc.document_text
             doc_title = orig_doc.document_title
             u = orig_doc.user
-            d = PublishedDocument(original_id=orig_doc, user=u, document_text=doc_text, document_title=doc_title, pub_date=timezone.now())
+            try:
+                d = PublishedDocument.objects.get(original_id = orig_doc)
+                d.unlisted = False
+            except:
+                d = PublishedDocument(original_id=orig_doc, user=u, document_text=doc_text, document_title=doc_title, pub_date=timezone.now())
             d.save()
             pub.articles.add(d)
             pub.last_pub_date = d.pub_date
@@ -75,6 +79,8 @@ def publish_document(request):
  #       orig_doc = doc.original_id
         try:
             current_pub = PublishedDocument.objects.get(original_id = orig_doc)
+            current_pub.unlisted = False
+            current_pub.save()
         except:
             orig_doc.has_been_published = True;
             orig_doc.save()
@@ -105,6 +111,8 @@ def publish_document_to_publication(request):
         try:
             orig_doc = Document.objects.get(link_hash=hash_id)
             d = PublishedDocument.objects.get(original_id = orig_doc)
+            d.unlisted = False
+            d.save()
         except:
             orig_doc.has_been_published = True;
             orig_doc.save()
@@ -237,9 +245,21 @@ def get_latest_pubs(request):
     article_hashes = {}
     for article in returned_articles:
         pub_date = PublicationDate.objects.filter(publication = pub, article = article).order_by('-date')[0]
-        article_hashes[article.document_title] = [article.link_hash, pub_date.date.strftime('%H:%M %Y-%m-%d '), article.user.username]
+        article_hashes[article.document_title] = [article.link_hash, pub_date.date.strftime('%H:%M %Y-%m-%d '), article.user.username, article.unlisted]
     context = {"published_articles":article_hashes}
     return HttpResponse(json.dumps(context))
+
+def unlist(request):
+    u = get_user(request)
+    doc_hash = request.POST['docHash']
+    orig_doc = Document.objects.get(link_hash=doc_hash)
+    doc = PublishedDocument.objects.get(original_id=orig_doc)
+    if (doc.user == u):
+        doc.unlisted = True
+        doc.save()
+    context = {"article":[doc.link_hash, doc.unlisted]}
+    return HttpResponse(json.dumps(context))
+    
 
 def add_sidebar(request):
     pub_id = request.POST['publication_id']
