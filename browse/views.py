@@ -55,9 +55,9 @@ def article_preview_context(request, page):
         recent_articles = get_recently_read(u)[:5]
         tags = u.twocentsuser.active_tags.all()
         if len(tags) > 0:
-            latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all()) | Q(user__in=u.twocentsuser.user_follows.all()) | Q(pub_date__lte=timezone.now(), tags__in=tags)).distinct().order_by('-rank')
+            latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all()) | Q(user__in=u.twocentsuser.user_follows.all(), unlisted = False) | Q(pub_date__lte=timezone.now(), tags__in=tags, unlisted = False)).distinct().order_by('-rank')
         else:
-            latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all()) | Q(pub_date__lte=timezone.now()) | Q(user__in=u.twocentsuser.user_follows.all())).distinct().order_by('-rank')
+            latest_document_list = PublishedDocument.objects.filter(Q(publication__in=u.twocentsuser.pub_follows.all(), unlisted = False) | Q(pub_date__lte=timezone.now(), unlisted = False) | Q(user__in=u.twocentsuser.user_follows.all())).distinct().order_by('-rank')
     else:
         tags = []
         latest_document_list = PublishedDocument.objects.filter(pub_date__lte=timezone.now()).order_by('-rank')
@@ -194,13 +194,13 @@ def read(request, hash_id):
         orig_doc = Document.objects.get(link_hash=hash_id)
         if orig_doc.has_been_published:
             doc = PublishedDocument.objects.get(original_id=orig_doc)
-            if u.is_authenticated:
+            if u.is_authenticated():
                 recent_articles = add_recently_read(u, doc)
         else:
             doc = doc.latest_id
     except:
         doc = PublishedDocument.objects.get(link_hash=hash_id)
-        if u.is_authenticated:
+        if u.is_authenticated():
             recent_articles = add_recently_read(u, doc)
     context = {'selected_doc': doc, 'bookmark' : get_bookmark_offset(request, doc), 'recent_articles' : recent_articles}
     form = UserCreationForm()
