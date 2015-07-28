@@ -81,6 +81,29 @@ function removeEmptyLevel() {
     });
 }
 
+function highlightStates(medium) {
+
+        $(".bold").removeClass("activeState");
+        $(".italic").removeClass("activeState");
+        $(".underline").removeClass("activeState");
+        $(".strike").removeClass("activeState");
+
+        var el = medium.cursor.parent();
+        while (el.parentNode) {
+            if (el.nodeName == "B") {
+                $(".bold").addClass("activeState");
+            } else if (el.nodeName == "I") {
+                $(".italic").addClass("activeState");
+            } else if (el.nodeName == "U") {
+                $(".underline").addClass("activeState");
+            } else if (el.nodeName == "STRIKE") {
+                $(".strike").addClass("activeState");
+            }
+            el = el.parentNode;
+        }
+
+}
+
 
 function updateNumbers() {
     var level1 = 0;
@@ -92,6 +115,8 @@ function updateNumbers() {
     var newLevel = 0;
 
     unpackLevels();
+
+    $(".outlineNav").empty();
 
     $("level1, level2, level3").each(function() {
 
@@ -118,6 +143,10 @@ function updateNumbers() {
 //            $(this).before($('<level1>' + level1 + "." + headingText + '</level1>'));
 //            $(this).remove();
             $(this).text(level1 + "." + headingText);
+            $(this).attr("id", "level1" + level1);
+            $(".outlineNav").append(
+                $('<a class="level1Nav">').attr("href", "#level1" + level1).append($(this).text())
+            );
 //            $(this).attr("contenteditable", false);
         } else if ($(this).is("level2")) {
             level2 ++;
@@ -127,12 +156,20 @@ function updateNumbers() {
             var headingText = text.substr(text.indexOf(".") + 1);
             headingText = headingText.substr(headingText.indexOf(".") + 1);
             $(this).text(level1 + "." + level2 + "." + headingText);
+            $(this).attr("id", "level2" + level2);
+            $(".outlineNav").append(
+                $('<a class="level2Nav">').attr("href", "#level2" + level2).append($(this).text())
+            );
         } else if ($(this).is("level3")) {
             level3 ++;
             cumLevel3 ++;
             var text = $(this).text();
             var headingText = text.substr(text.indexOf(".") + 1);
             $(this).text(level3 + "." + headingText);
+            $(this).attr("id", "level3" + level3);
+            $(".outlineNav").append(
+                $('<a class="level3Nav">').attr("href", "#level3" + level3).append($(this).text())
+            );
         }
 
     });
@@ -175,30 +212,50 @@ function updateNumbers() {
 
 
 	document.querySelector('.bold').onmousedown = function() {
+        var state = $(this).hasClass("activeState");
 		article.highlight();
 		medium.invokeElement('b', {
 	    });
+        highlightStates(medium);
+        if (!state) {
+            $(this).toggleClass("activeState");
+        }
 		return false;
 	};
 
 	document.querySelector('.underline').onmousedown = function() {
+        var state = $(this).hasClass("activeState");
 		article.highlight();
 		medium.invokeElement('u', {
 		});
+        highlightStates(medium);
+        if (!state) {
+            $(this).toggleClass("activeState");
+        }
 		return false;
 	};
 
 	document.querySelector('.italic').onmousedown = function() {
+        var state = $(this).hasClass("activeState");
 		article.highlight();
 		medium.invokeElement('i', {
 		});
+        highlightStates(medium);
+        if (!state) {
+            $(this).toggleClass("activeState");
+        }
 		return false;
 	};
 
 	document.querySelector('.strike').onmousedown = function() {
+        var state = $(this).hasClass("activeState");
 		article.highlight();
 		medium.invokeElement('strike', {
 		});
+        highlightStates(medium);
+        if (!state) {
+            $(this).toggleClass("activeState");
+        }
 		return false;
 	};
 
@@ -210,9 +267,16 @@ function updateNumbers() {
             e.preventDefault();
             e.stopPropagation();
         }
+
     };
 
+    article.onclick = function(e) {
+        highlightStates(medium);
+    }
+
     article.onkeyup = function(e) {
+
+        highlightStates(medium);
 
         if (e.keyCode == 8) {
             var levelCount = $("level1, level2, level3").size();
@@ -510,7 +574,12 @@ function removeIns(){
      $(".currentTarget").remove() 
 }
 
-for (i = {{selected_doc.latest_id.document_version}}; i >= 1; i--) { 
+
+    $(".versionSelect").append(
+        $('<option class="draftOption" value='+{{selected_doc.latest_id.document_version}}+'>').append("Latest Draft")                                                      
+    );
+
+for (i = {{selected_doc.latest_id.document_version}} - 1; i >= 1; i--) { 
     $(".versionSelect").append(
         $('<option class="draftOption" value='+i+'>').append("Draft " + i)                                                      
     );
@@ -524,15 +593,14 @@ $(".versionSelect").on("change", function() {
                            data: {'doc_id': $("#docId").val(), 'version': version, 'csrfmiddlewaretoken': '{{csrf_token}}'},
                            dataType: "json",
                            success: function(response) {
-                                    $(".editField").attr("contenteditable", "false");
+                                    $("#textbody").attr("contenteditable", "false");
                                     if(version == {{selected_doc.latest_id.document_version}}) {
-                                        $(".editField").attr("contenteditable", "true");
+                                        $("#textbody").attr("contenteditable", "true");
                                         $(".revert").hide();
                                     } else {
-                                        $(".revert").hide();
+                                        $(".revert").show();
                                     }
-                                    $(".editField").empty();
-                                    $(".editField").append(response["draft_text"]);
+                                    $("#textbody").html(response["draft_text"]);
                             },
                             error: function(rs, e) {
 alert("HELLO");
@@ -667,10 +735,6 @@ $(".sourceType").change(function() {
                 <input id="docId" type="hidden" value="{{selected_doc.id}}"/>
 </form>
 
-    <select class="versionSelect">
-    </select>
-    <span class="revert">Revert Document</span>
-
 {% endblock %}
 
 {% block middleContent %}
@@ -688,9 +752,13 @@ $(".sourceType").change(function() {
 		<li data-content="write" class="selected">
             
             <div class="extendingColumn tabbedContent">
+
+    <select class="versionSelect">
+    </select>
+    <span class="revert">Revert Document</span>
                 <div class="articlePaddingDiv">
   <div id="textbody" class="article demo">
-{{selected_doc.latest_id.document_text | safe}}
+      {{selected_doc.latest_id.document_text | safe}}
   </div>
                 </div></div>
             
@@ -776,10 +844,10 @@ $(".sourceType").change(function() {
                         <div class="leftActions">
                                                     
                       <div class="leftAction toolbar">
-    <span class="clickable bold" style="font-weight: bold; color: #A9A9A9">B</span>
-    <span class="clickable underline" style="text-decoration: underline; color: #A9A9A9">U</span>
-    <span class="clickable italic" style="font-style: italic; color: #A9A9A9">I</span>
-    <span class="clickable strike" style="text-decoration: line-through; color: #A9A9A9">S</span>
+    <span class="clickable charState bold" style="font-weight: bold; color: #A9A9A9">B</span>
+    <span class="clickable charState underline" style="text-decoration: underline; color: #A9A9A9">U</span>
+    <span class="clickable charState italic" style="font-style: italic; color: #A9A9A9">I</span>
+    <span class="clickable charState strike" style="text-decoration: line-through; color: #A9A9A9">S</span>
   </div>   
                       <div class="leftAction toolbar">
     <span class="clickable heading1Button" style="color: #A9A9A9">1</span>
@@ -793,4 +861,17 @@ $(".sourceType").change(function() {
                             <div class="requestEdit leftAction"><a href="#" class="clickable actionText">Request Edit</a></div>
                         </div>
                     </div>
+{% endblock %}
+
+
+{% block rightContent %}
+<div class="paddingDiv">
+    <div class="column">
+        <div class="textPaddingDiv">
+            <b >Outline</b><br>
+            <div class="outlineNav">
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

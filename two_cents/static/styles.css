@@ -787,6 +787,11 @@ a.previewLink:visited {
     font-weight: bold;
 }
 
+.activeState {
+    color: #248fc1 !important;
+    font-weight: bold;
+}
+
 .editString {
     float: right;
     color: #C9C9C9;
@@ -1510,6 +1515,42 @@ select {
     width: 100%;
     display: block;
     float: left;
+}
+
+.versionSelect {
+    float: right;
+    margin-right: 20px;
+    margin-top: 20px;
+    font-family: Merriweather;
+    font-size: 20px;
+   -webkit-appearance: none;
+   -moz-appearance: none;
+   appearance: none;
+}
+
+.revert {
+    float: right;
+    margin-right: 20px;
+    margin-top: 20px;
+}
+
+.level1Nav {
+    display: block;
+    font-size: 20px;
+    margin-top: 5px;
+}
+
+.level2Nav {
+    display: block;
+    margin-left: 10px;
+    margin-top: 5px;
+}
+
+.level3Nav {
+    display: block;
+    margin-left: 20px;
+    margin-top: 5px;
+    font-size: 14px;
 }
 
 .nextPage a{
