@@ -33,6 +33,14 @@ def mydrafts(request):
     return render(request, 'write/mydrafts.html', context)
 
 
+
+def revision(request, hash_id):
+    doc = Document.objects.filter(link_hash=hash_id)[0]
+#    orig_doc = doc.original_id
+#    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
+    context = {'selected_doc': doc}
+    return render(request, 'write/new.html', context)
+
 def new(request):
     u = get_user(request)
     views.auth_redirect(u, request)
@@ -43,15 +51,7 @@ def new(request):
     else:
         new_doc_id = save_doc_in_db(request, "", doc_title, "", "")
     doc = Document.objects.get(pk=new_doc_id)
-    return redirect('/write/' + doc.link_hash)
-
-
-def revision(request, hash_id):
-    doc = Document.objects.filter(link_hash=hash_id)[0]
-#    orig_doc = doc.original_id
-#    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
-    context = {'selected_doc': doc}
-    return render(request, 'write/new.html', context)
+    return revision(request, doc.link_hash)
 
 def save_doc_in_db(request, doc_text, doc_title, doc_id, editorsString):    
 
