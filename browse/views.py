@@ -599,7 +599,7 @@ def conversations(request, page):
         
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse('browse:index'))
+    return index(request)
     
 @register.inclusion_tag('login.html') 
 def login_form(request):
@@ -610,13 +610,13 @@ def login_form(request):
         if user.is_active:
             login(request, user)
             
-            return HttpResponseRedirect(reverse('browse:index'))
+            return index(request)
             # Redirect to a success page.
         else:
-            return HttpResponseRedirect(reverse('browse:index'))
+            return index(request)
             # Return a 'disabled account' error message
     else:
-            return HttpResponseRedirect(reverse('browse:index'))
+            return index(request)
             # Return an 'invalid login' error message.
             
 
@@ -680,7 +680,7 @@ def follow_tags(request):
             u.tag_follows.add(t)
             u.active_tags.add(t)
     u.save()
-    return HttpResponseRedirect(reverse('browse:index'))
+    return index(request)
 
 def change_subs(request):
     new_subs = request.POST['new_subs']
@@ -716,7 +716,7 @@ def change_subs(request):
             except:
                 pass
     u.save()
-    return HttpResponseRedirect(reverse('browse:index'))
+    return index(request)
 
 def add_tags(request):
     tags = request.POST['tags']
@@ -733,7 +733,7 @@ def add_tags(request):
                 t.save()
             doc.tags.add(t)
     doc.save()
-    return HttpResponseRedirect(reverse('browse:index'))
+    return index(request)
         
 def toggle_tag(request):
     tag = request.POST['tag']
