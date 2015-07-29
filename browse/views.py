@@ -42,7 +42,7 @@ def add_recently_read(user, doc):
         earliest_article.save()
     return recent_articles[:5]
 
-def auth_redirect(user):
+def auth_redirect(user, request):
     if not user.is_authenticated():
         return browse_page(request, 1)
     else:

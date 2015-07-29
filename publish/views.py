@@ -22,7 +22,7 @@ from django.contrib.auth.models import User
 
 def review(request, hash_id):
     u = get_user(request)
-    views.auth_redirect(u)
+    views.auth_redirect(u, request)
     doc = Document.objects.filter(link_hash=hash_id)[0]
 #    orig_doc = doc.original_id
 #    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
@@ -31,7 +31,7 @@ def review(request, hash_id):
 
 def mydocs(request):
     u = get_user(request)
-    views.auth_redirect(u)
+    views.auth_redirect(u, request)
     publication_list = Publication.objects.filter(editors=u)
     write_member_list = Publication.objects.filter(writers=u)
     context = {'publication_list': publication_list, 'write_member_list': write_member_list}

@@ -35,7 +35,7 @@ def mydrafts(request):
 
 def new(request):
     u = get_user(request)
-    views.auth_redirect(u)
+    views.auth_redirect(u, request)
     doc_title = request.POST['doc_title']
     starter_html = request.POST['starter_html']
     if len(starter_html) > 0:
