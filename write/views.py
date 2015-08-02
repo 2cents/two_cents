@@ -53,7 +53,7 @@ def new(request):
     else:
         new_doc_id = save_doc_in_db(request, "", doc_title, "", "")
     doc = Document.objects.get(pk=new_doc_id)
-    domain = request.META['HTTP_HOST']
+    domain = 'http://www.ec2-54-174-71-237.compute-1.amazonaws.com'
     destination = reverse('write:revision', kwargs= {'hash_id' : doc.link_hash})   
     full_address = urlparse.urljoin(domain, destination)
     return HttpResponseRedirect(full_address)
