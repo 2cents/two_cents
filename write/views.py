@@ -9,6 +9,8 @@ import requests
 import lxml
 from lxml import html
 
+import urlparse
+
 from django.core import serializers
 
 import json
@@ -51,7 +53,11 @@ def new(request):
     else:
         new_doc_id = save_doc_in_db(request, "", doc_title, "", "")
     doc = Document.objects.get(pk=new_doc_id)
-    return revision(request, doc.link_hash)
+    domain = request.META['HTTP_HOST']
+    destination = reverse('write:revision', kwargs= {'hash_id' : doc.link_hash})   
+    full_address = urlparse.urljoin(domain, destination)
+    return HttpResponseRedirect(full_address)
+#    return revision(request, doc.link_hash)
 
 def save_doc_in_db(request, doc_text, doc_title, doc_id, editorsString):    
 
@@ -78,9 +84,21 @@ def save_doc_in_db(request, doc_text, doc_title, doc_id, editorsString):
     orig_doc.save()
     return orig_doc.id
 
-def get_doc_version(request):
+def revert(request):
     doc_id = request.POST['doc_id']
     version = request.POST['version']
+    document = Document.objects.get(pk = doc_id)
+    draft = DocumentDraft.objects.get(document = document, document_version = version)
+    draft.is_latest = True
+    draft.save()
+    document.latest_id = draft
+    document.save()
+    DocumentDraft.objects.filter(document_version__gt = version, document = document).delete()
+    return HttpResponse(version)
+
+def get_doc_version(request):
+    doc_id = request.GET['doc_id']
+    version = request.GET['version']
     d = DocumentDraft.objects.get(document = doc_id, document_version = version)
     context = {'draft_text' : d.document_text}
     return HttpResponse(json.dumps(context))

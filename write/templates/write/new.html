@@ -588,7 +588,7 @@ for (i = {{selected_doc.latest_id.document_version}} - 1; i >= 1; i--) {
 $(".versionSelect").on("change", function() {
                                                             version = $(this).val();
                   $.ajax({
-                           type: "POST",
+                           type: "GET",
                            url: "{% url 'write:get_doc_version' %}",
                            data: {'doc_id': $("#docId").val(), 'version': version, 'csrfmiddlewaretoken': '{{csrf_token}}'},
                            dataType: "json",
@@ -603,11 +603,49 @@ $(".versionSelect").on("change", function() {
                                     $("#textbody").html(response["draft_text"]);
                             },
                             error: function(rs, e) {
-alert("HELLO");
                                     alert(rs.responseText);
                             }
                       });
     
+});
+
+$(".revert").on("click", function() {
+    version = $(".versionSelect").val();
+    $(".formDraftNumber").val(version);
+    $("#draftWarningVersion").text("Draft " + version);
+    $("#revertFormBorder").show();
+});
+                                                            
+$(".revertButton").on("click", function() {
+          version = $(".versionSelect").val();
+          $.ajax({
+                   type: "POST",
+                   url: "{% url 'write:revert' %}",
+                   data: {'doc_id': $("#docId").val(), 'version': version, 'csrfmiddlewaretoken': '{{csrf_token}}'},
+                   dataType: "json",
+                   success: function(response) {
+                        $("#revertFormBorder").hide();
+                        $(".versionSelect").empty();
+                        $(".versionSelect").append(
+                            $('<option class="draftOption">').val(response).append("Latest Draft")                                                      
+                        );
+
+                        for (i = response - 1; i >= 1; i--) { 
+                            $(".versionSelect").append(
+                                $('<option class="draftOption" value='+i+'>').append("Draft " + i)                                                      
+                            );
+                        }
+                        $("#textbody").attr("contenteditable", "true");
+                        $(".revert").hide();
+                    },
+                    error: function(rs, e) {
+                            alert(rs.responseText);
+                    }
+              });
+});
+
+$(".cancelRevert").on("click", function() {
+    $("#revertFormBorder").hide();
 });
 
     $(".ins").tooltip({
@@ -828,6 +866,20 @@ $(".sourceType").change(function() {
                             </select>
                     <br><h4 style="clear:left">Comment</h4><textarea name="comment" id="editRequestComment"></textarea>
                     <button type="button" class="requestEditSubmit">Submit Request</button>
+                    <button type="button" class="cancel"><i class="fa fa-times"></i></button>
+                </form>
+            </div>
+            
+            <div id="revertFormBorder" class="popupFormBorder popup">
+                <form class="popupForm tagForm" id="revertForm" action="javascript:void(0);">
+                    <h3>Are you sure you want to revert this document?</h3>
+                    <div class="unlistWarning">
+                        By reverting this document, any changes made after <span id="draftWarningVersion"></span> will be lost.
+                    </div>
+                    <input type="hidden" name="docHash" class="formDocHash">
+                    <input type="hidden" name="draftNumber" class="formDraftNumber">
+                    <button class="cancelRevert redButton">Cancel</button>
+                    <button class="revertButton blueButton">Revert</button>
                     <button type="button" class="cancel"><i class="fa fa-times"></i></button>
                 </form>
             </div>

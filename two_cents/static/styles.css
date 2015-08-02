@@ -501,6 +501,7 @@ level3 {
 
 #rightHere {
 //    width: 100%;   
+    line-height: 150%;
 }
 
 #header {
@@ -1482,7 +1483,8 @@ input[type="file"] {
 }
 
 #textbody {
-    min-height: 200px;   
+    min-height: 200px;
+    line-height: 150%;
 }
 
 #textbody:focus {
@@ -1532,6 +1534,10 @@ select {
     float: right;
     margin-right: 20px;
     margin-top: 20px;
+}
+
+.revertButton {
+    float: right;   
 }
 
 .level1Nav {
