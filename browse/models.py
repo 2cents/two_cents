@@ -53,7 +53,7 @@ class Document(models.Model):
     was_published_recently.short_description = 'Published recently?'
     
 class DocumentDraft(models.Model):
-    document_text = models.CharField(max_length=10000, blank=True, default = None)
+    document_text = models.TextField(blank=True, default = None)
     document_version = models.IntegerField(default=0)
     document = models.ForeignKey(Document)
     editor = models.ForeignKey(User, related_name="document_editor", default=None, blank=True, null=True)
