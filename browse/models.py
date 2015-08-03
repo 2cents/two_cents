@@ -69,7 +69,7 @@ class Tag(models.Model):
 class PublishedDocument(models.Model):
     epoch = datetime(1970, 1, 1)
     
-    document_text = models.CharField(max_length=10000, blank=True)
+    document_text = models.TextField(blank=True)
     preview_text = models.CharField(max_length=1000, blank=True)
     document_title = models.CharField(max_length=200)
     original_id = models.ForeignKey(Document, related_name="orig_doc_id", default=0)
