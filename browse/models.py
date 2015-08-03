@@ -78,7 +78,7 @@ class PublishedDocument(models.Model):
     user = models.ForeignKey(User)
     tags = models.ManyToManyField(Tag, related_name="tags")
     pub_date = models.DateTimeField('date published', null=True)
-    link_hash = models.CharField(max_length=20, editable=False, default="")
+    link_hash = models.CharField(max_length=50, editable=False, default="")
     votes = models.IntegerField(default=1)
     rank = models.FloatField(default=0)
 
