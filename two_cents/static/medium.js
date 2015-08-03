@@ -754,7 +754,7 @@ Medium.prototype = {
 					}
 
 					if (settings.mode !== Medium.inlineMode) {
-						text = text.replace(/\n/g, '<br>');
+						text = text.replace(/\n/g, '</p><p>');
 					}
 
 					(new Medium.Html(medium, text))

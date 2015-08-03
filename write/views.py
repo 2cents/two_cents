@@ -9,7 +9,7 @@ import requests
 import lxml
 from lxml import html
 
-import urlparse
+import urllib.parse
 
 from django.core import serializers
 
@@ -55,7 +55,7 @@ def new(request):
     doc = Document.objects.get(pk=new_doc_id)
     domain = 'http://ec2-54-174-71-237.compute-1.amazonaws.com'
     destination = reverse('write:revision', kwargs= {'hash_id' : doc.link_hash})   
-    full_address = urlparse.urljoin(domain, destination)
+    full_address = urllib.parse.urljoin(domain, destination)
     return HttpResponseRedirect(full_address)
 #    return revision(request, doc.link_hash)
 
