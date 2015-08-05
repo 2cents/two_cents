@@ -198,7 +198,7 @@ class Comment(models.Model):
     document = models.ForeignKey(PublishedDocument)
     date = models.DateTimeField('date', default=datetime.now)
     comment_text = models.CharField(max_length=1000, blank=False)
-    parent = models.ForeignKey('self', default=0)
+    parent = models.ForeignKey('self', default=None, blank=True, null=True)
     top_comment = models.ForeignKey('self', related_name="topmost_comment", default=0)
     votes = models.IntegerField(default=1)
         
