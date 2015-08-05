@@ -361,7 +361,7 @@ def get_comments(request):
     doc_id = request.GET['doc_id']
     doc=PublishedDocument.objects.get(pk=doc_id)
     u = get_user(request)
-    comment_list = Comment.objects.filter(document=doc, parent=0).order_by('-date')[:20]
+    comment_list = Comment.objects.filter(document=doc, parent=None).order_by('-date')[:20]
     XMLSerializer = serializers.get_serializer("xml")
     xml_serializer = XMLSerializer()
     
