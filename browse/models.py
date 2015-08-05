@@ -199,7 +199,7 @@ class Comment(models.Model):
     date = models.DateTimeField('date', default=datetime.now)
     comment_text = models.CharField(max_length=1000, blank=False)
     parent = models.ForeignKey('self', default=None, blank=True, null=True)
-    top_comment = models.ForeignKey('self', related_name="topmost_comment", default=0)
+    top_comment = models.ForeignKey('self', related_name="topmost_comment", default=None, blank=True, null=True)
     votes = models.IntegerField(default=1)
         
     def inc_votes(self):
