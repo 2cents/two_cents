@@ -21,7 +21,7 @@ def myedits(request):
     context = {'publication_list' : publication_list}
     return render(request, 'edit/myedits.html', context)
 
-def edit(request, hash_id):
+def edit_draft(request, hash_id):
     doc = Document.objects.filter(link_hash=hash_id)[0]
 #    orig_doc = doc.original_id
 #    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
