@@ -26,4 +26,4 @@ def edit(request, hash_id):
 #    orig_doc = doc.original_id
 #    current_doc = Document.objects.filter(original_id=orig_doc, is_latest=True)[0]
     context = {'selected_doc': doc}
-    return render(request, 'edit/index.html', context)
+    return render(request, 'edit/editdraft.html', context)
