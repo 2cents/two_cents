@@ -249,5 +249,5 @@ class Message(models.Model):
     recipient = models.ForeignKey(User, related_name="recipient")
     date = models.DateTimeField('date', default=datetime.now)
     message_text = models.CharField(max_length=1000, blank=False)
-    previous = models.ForeignKey('self', default=0)
-    original_message = models.ForeignKey('self', related_name="original", null=True)
+    previous = models.ForeignKey('self', default=None, blank=True, null=True)
+    original_message = models.ForeignKey('self', related_name="original", default=None, blank=True, null=True)

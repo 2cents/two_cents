@@ -9,7 +9,7 @@ import requests
 import lxml
 from lxml import html
 
-import urlparse
+import urllib.parse
 
 from django.core import serializers
 
@@ -55,7 +55,7 @@ def new(request):
     doc = Document.objects.get(pk=new_doc_id)
     domain = 'http://ec2-54-174-71-237.compute-1.amazonaws.com'
     destination = reverse('write:revision', kwargs= {'hash_id' : doc.link_hash})   
-    full_address = urlparse.urljoin(domain, destination)
+    full_address = urllib.parse.urljoin(domain, destination)
     return HttpResponseRedirect(full_address)
 #    return revision(request, doc.link_hash)
 
@@ -192,9 +192,11 @@ def save_document_as_edit(request):
     text = format_doc_text(doc_text)
     
     orig_doc = Document.objects.get(pk=doc_id)
+    prev_doc = orig_doc.latest_id
+    new_version = prev_doc.document_version + 1
     author=orig_doc.user
     DocumentDraft.objects.filter(document=orig_doc, is_latest=True).update(is_latest=False)
-    d = DocumentDraft(document=orig_doc, document_text=text, save_date=timezone.now(), is_edit=True, is_latest=True, edit_count=edit_count, editors_list = editorsString)
+    d = DocumentDraft(document=orig_doc, document_text=text, save_date=timezone.now(), is_edit=True, is_latest=True, edit_count=edit_count, editors_list = editorsString, document_version = new_version)
     d.save()
         
     orig_doc.latest_id = d
