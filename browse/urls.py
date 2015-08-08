@@ -4,6 +4,7 @@ from browse import views
 
 
 urlpatterns = patterns('',
+    url(r'^sphere/$', views.sphere, name='sphere'),
     url(r'^register/$', views.register, name='register'),
     url(r'^author/(?P<name>.+)$', views.author, name='author'),
     url(r'^publication/(?P<name>.+)$', views.publication, name='publication'),

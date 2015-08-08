@@ -23,6 +23,9 @@ from django.core import serializers
 
 # Create your views here.
 
+def sphere(request):
+    return render(request, 'browse/sphere.html')
+
 def get_recently_read(user):
     recent_articles = RecentlyRead.objects.filter(user = user).order_by('-date')
     return recent_articles
