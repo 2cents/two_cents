@@ -22,22 +22,25 @@ path {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script>
 
-var width = 960,
-    height = 500,
+var width = 1500,
+    height = 1500,
     rotate = [10, -10],
     velocity = [.003, -.001],
     time = Date.now();
 
 var projection = d3.geo.orthographic()
-    .scale(240)
+    .scale(500)
     .translate([width / 2, height / 2])
     .clipAngle(90 + 1e-6)
     .precision(.3);
 
 var path = d3.geo.path()
-    .projection(projection);
+    .projection(projection)
+    .pointRadius(30);
 
 var graticule = d3.geo.graticule();
+
+//var circle = d3.geo.circle().attr("r", 10);
 
 var svg = d3.select("body").append("svg")
     .attr("width", width)
@@ -54,15 +57,49 @@ svg.append("path")
     .attr("d", path);
 
 svg.append("path")
-    .datum({type: "LineString", coordinates: [[-180, 0], [-90, 0], [0, 0], [90, 0], [180, 0]]})
+    .datum({type: "Point", coordinates: [0,0]})
+//    .pointRadius(10)
     .attr("class", "equator")
+    .style("fill", "red")
     .attr("d", path);
+
+
+svg.append("circle")
+    .attr("cx", 750)
+    .attr("cy", 750)
+    .attr("r", 33)
+    .style("fill", "none")
+    .style("stroke", "black")
+    .style("stroke-width", 3);
+
+
+svg.append("circle")
+    .attr("cx", 750)
+    .attr("cy", 750)
+    .attr("r", 150)
+    .style("fill", "none")
+    .style("stroke", "red")
+    .style("stroke-width", 3);
+
+svg.append("line")
+    .attr("x1", 750)
+    .attr("y1", 600)
+    .attr("x2", 750)
+    .attr("y2", 900)
+    .style("stroke", "black");
+ 
+svg.append("line")
+    .attr("y1", 750)
+    .attr("x1", 600)
+    .attr("y2", 750)
+    .attr("x2", 900)
+    .style("stroke", "black");
 
 var feature = svg.selectAll("path");
 
 d3.timer(function() {
   var dt = Date.now() - time;
-  projection.rotate([10, 70]);
+//  projection.rotate([10, 70]);
   feature.attr("d", path);
 });
     
@@ -82,10 +119,21 @@ if (window.DeviceMotionEvent != undefined) {
 //			document.getElementById("rotationGamma").innerHTML = e.rotationRate.gamma;
 		}		
 	}
-
+var prevX = 0;
+var prevY = 0;
 	setInterval( function() {
-        
-      projection.rotate([ax, ay]);
+//        diffX = ax - prevX;
+//	diffY = ay - prevY;
+//	if (Math.abs(diffX) > 5) {
+//	    diffX = 5 * Math.sign(diffX);
+//	}
+//	if (Math.abs(diffY) > 5) {
+//	    diffY = 5 * Math.sign(diffY);
+//	}
+//	prevX += diffX;
+//	prevY += diffY;
+//      projection.rotate([-ax, ay, 0]);
+	projection.rotate([ax, ay]);
 		
 	}, 25);
 
